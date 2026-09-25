@@ -47,6 +47,17 @@ public class OrderBook {
         return true;
     }
 
+    public void removeFilledOrder(Order order) {
+        PriceLevel level = order.getParentLevel();
+        if (level != null) {
+            level.unlink(order);
+            if (level.isEmpty()) {
+                getBook(order.getSide()).remove(level.getPrice());
+            }
+        }
+        orderMap.remove(order.getOrderId());
+    }
+
     public PriceLevel getBestBid() {
         Map.Entry<Long, PriceLevel> entry = bids.firstEntry();
         return entry == null ? null : entry.getValue();
