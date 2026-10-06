@@ -1,30 +1,32 @@
 package com.rudra.apextrade.disruptor.event;
 
-import com.rudra.apextrade.core.event.Trade;
 import com.rudra.apextrade.core.order.OrderType;
 import com.rudra.apextrade.core.order.Side;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
+class OrderCommandEventLhsPadding {
+    protected long p1, p2, p3, p4;
+}
 
 @Getter
 @Setter
-public class OrderCommandEvent {
+class OrderCommandEventFields extends OrderCommandEventLhsPadding{
+    protected CommandType commandType;
+    protected long userId;
+    protected long orderId;
+    protected Side side;
+    protected long price;
+    protected long quantity;
+    protected OrderType orderType;
+    protected long timestamp;
+}
 
-    private CommandType commandType;
-    private long userId;
-    private long orderId;
-    private Side side;
-    private long price;
-    private long quantity;
-    private OrderType orderType;
-    private CompletableFuture<List<Trade>> resultFuture;
+public class OrderCommandEvent extends OrderCommandEventFields{
+    protected long p5, p6, p7, p8;
 
     public void set(CommandType commandType, long userId, long orderId, Side side,
-                    long price, long quantity, OrderType orderType,
-                    CompletableFuture<List<Trade>> resultFuture) {
+                    long price, long quantity, OrderType orderType, long timestamp) {
 
         this.commandType = commandType;
         this.userId = userId;
@@ -33,27 +35,13 @@ public class OrderCommandEvent {
         this.price = price;
         this.quantity = quantity;
         this.orderType = orderType;
-        this.resultFuture = resultFuture;
-
+        this.timestamp = timestamp;
     }
 
-    public void setCancel(long orderId, long userId, CompletableFuture<List<Trade>> resultFuture) {
-        clear();
+    public void setCancel(long orderId, long userId) {
         this.commandType = CommandType.CANCEL_ORDER;
         this.orderId = orderId;
         this.userId = userId;
-        this.resultFuture = resultFuture;
-    }
-
-    public void clear() {
-        this.commandType = null;
-        this.orderId = 0L;
-        this.userId = 0L;
-        this.side = null;
-        this.price = 0L;
-        this.quantity = 0L;
-        this.orderType = null;
-        this.resultFuture = null;
     }
 
 }

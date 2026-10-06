@@ -68,10 +68,6 @@ public class OrderBook {
         return entry == null ? null : entry.getValue();
     }
 
-    public Order getOrder(long orderId) {
-        return orderMap.get(orderId);
-    }
-
     public boolean hasBids() {
         return !bids.isEmpty();
     }

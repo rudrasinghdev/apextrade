@@ -3,7 +3,7 @@ package com.rudra.apextrade.core.order;
 import lombok.Getter;
 
 @Getter
-public class PriceLevel {
+public class  PriceLevel {
 
     private final long price;
     private long totalVolume;
@@ -17,8 +17,8 @@ public class PriceLevel {
         this.totalVolume = 0L;
         this.orderCount = 0;
 
-        this.head = new Order(-1, -1, null, null, price, 0);
-        this.tail = new Order(-1, -1, null, null, price, 0);
+        this.head = new Order(-1, -1, null, null, price, 0, 0);
+        this.tail = new Order(-1, -1, null, null, price, 0, 0);
 
         this.head.next = this.tail;
         this.tail.prev = this.head;

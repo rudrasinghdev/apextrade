@@ -1,89 +1,76 @@
 package com.rudra.apextrade.core.engine;
 
 import com.rudra.apextrade.core.book.OrderBook;
-import com.rudra.apextrade.core.event.Trade;
 import com.rudra.apextrade.core.order.Order;
 import com.rudra.apextrade.core.order.OrderType;
 import com.rudra.apextrade.core.order.PriceLevel;
 import com.rudra.apextrade.core.order.Side;
 import lombok.Getter;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Getter
 public class MatchingEngine {
 
     private final OrderBook orderBook;
-    private long nextTradeId = 1L;
 
     public MatchingEngine(OrderBook orderBook) {
         this.orderBook = orderBook;
     }
 
-    public List<Trade> processOrder(Order incomingOrder) {
-        List<Trade> trades = new ArrayList<>();
-        if(incomingOrder.getSide() == Side.BUY) {
-            matchBuyOrder(incomingOrder, trades);
+    public void processOrder(long userId, long orderId, Side side, long price,
+                             long quantity, OrderType orderType, long timestamp) {
+
+        long remainingQuantity = quantity;
+        if (side == Side.BUY) {
+            remainingQuantity = matchBuyOrder(price, remainingQuantity, orderType);
         } else {
-            matchSellOrder(incomingOrder, trades);
+            remainingQuantity = matchSellOrder(price, remainingQuantity, orderType);
         }
-        if (!incomingOrder.isFilled() && incomingOrder.getType() == OrderType.LIMIT) {
-            orderBook.addOrder(incomingOrder);
+
+        if (remainingQuantity > 0 && orderType == OrderType.LIMIT) {
+            Order restingOrder = new Order(orderId, userId, side, orderType, price, remainingQuantity, timestamp);
+            orderBook.addOrder(restingOrder);
         }
-        else if(!incomingOrder.isFilled() && incomingOrder.getType() == OrderType.MARKET) {
-            incomingOrder.cancel();
-        }
-        return trades;
     }
 
-    private void matchBuyOrder(Order buyOrder, List<Trade> trades) {
-        while (buyOrder.getRemainingQuantity() > 0 && orderBook.hasAsks()) {
+    private long matchBuyOrder(long price, long remainingQuantity, OrderType orderType) {
+        while (remainingQuantity > 0 && orderBook.hasAsks()) {
             PriceLevel bestAsk = orderBook.getBestAsk();
-            if (buyOrder.getType() == OrderType.LIMIT && bestAsk.getPrice() > buyOrder.getPrice()) {
+            if (orderType == OrderType.LIMIT && bestAsk.getPrice() > price) {
                 break;
             }
-            matchAgainstLevel(buyOrder, bestAsk, trades);
+            remainingQuantity = matchAgainstLevel(remainingQuantity, bestAsk);
         }
+        return remainingQuantity;
     }
 
-    private void matchSellOrder(Order sellOrder, List<Trade> trades) {
-        while (sellOrder.getRemainingQuantity() > 0 && orderBook.hasBids()) {
+    private long matchSellOrder(long price, long remainingQuantity, OrderType orderType) {
+        while (remainingQuantity > 0 && orderBook.hasBids()) {
             PriceLevel bestBids = orderBook.getBestBid();
-            if(sellOrder.getType() == OrderType.LIMIT && bestBids.getPrice() < sellOrder.getPrice()) {
+            if (orderType == OrderType.LIMIT && bestBids.getPrice() < price) {
                 break;
             }
-            matchAgainstLevel(sellOrder, bestBids, trades);
+            remainingQuantity = matchAgainstLevel(remainingQuantity, bestBids);
         }
+        return remainingQuantity;
     }
 
-    private void matchAgainstLevel(Order takerOrder, PriceLevel level, List<Trade> trades) {
-        while (takerOrder.getRemainingQuantity() > 0 && !level.isEmpty()) {
+    private long matchAgainstLevel(long remainingQuantity, PriceLevel level) {
+        while (remainingQuantity > 0 && !level.isEmpty()) {
             Order makerOrder = level.getFirstOrder();
-            long matchQuantity = Math.min(makerOrder.getRemainingQuantity(), takerOrder.getRemainingQuantity());
-            takerOrder.fill(matchQuantity);
+            long matchQuantity = Math.min(makerOrder.getRemainingQuantity(), remainingQuantity);
+
+            remainingQuantity -= matchQuantity;
             makerOrder.fill(matchQuantity);
             level.reduceVolume(matchQuantity);
-
-            trades.add(new Trade(
-                    nextTradeId++,
-                    makerOrder.getOrderId(),
-                    takerOrder.getOrderId(),
-                    takerOrder.getSide(),
-                    makerOrder.getPrice(),
-                    matchQuantity,
-                    System.nanoTime()
-                    )
-            );
 
             if (makerOrder.isFilled()) {
                 orderBook.removeFilledOrder(makerOrder);
             }
         }
+        return remainingQuantity;
     }
 
-    public boolean cancelOrder(long orderId) {
-        return orderBook.cancelOrder(orderId);
+    public void cancelOrder(long orderId) {
+        orderBook.cancelOrder(orderId);
     }
-
 }

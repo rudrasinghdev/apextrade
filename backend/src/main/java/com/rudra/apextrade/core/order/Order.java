@@ -12,7 +12,6 @@ public class Order {
     private final long price;
     private final long initialQuantity;
     private final long timestamp;
-
     private long remainingQuantity;
     private OrderStatus status;
 
@@ -20,16 +19,16 @@ public class Order {
     Order next;
     PriceLevel parentLevel;
 
-    public Order(long orderId, long userId, Side side, OrderType type, long price, long initialQuantity) {
+    public Order(long orderId, long userId, Side side, OrderType type, long price, long initialQuantity, long timestamp) {
         this.orderId = orderId;
         this.userId = userId;
         this.side = side;
         this.type = type;
         this.price = price;
         this.initialQuantity = initialQuantity;
+        this.timestamp = timestamp;
         this.remainingQuantity = initialQuantity;
         this.status = OrderStatus.NEW;
-        this.timestamp = System.nanoTime();
     }
 
     public void fill(long quantity) {

@@ -17,7 +17,7 @@ import java.util.concurrent.ThreadFactory;
 @Configuration
 public class DisruptorConfig {
 
-    private static final int BUFFER_SIZE = 65536; // 2^16
+    private static final int BUFFER_SIZE = 65536;
 
     @Bean
     public OrderBook orderBook() {
@@ -35,9 +35,7 @@ public class DisruptorConfig {
     }
 
     @Bean(destroyMethod = "shutdown")
-    public Disruptor<OrderCommandEvent> disruptor(OrderCommandHandler orderCommandHandler) {
-        OrderCommandEventFactory factory = new OrderCommandEventFactory();
-
+    public Disruptor<OrderCommandEvent> disruptor(OrderCommandEventFactory factory, OrderCommandHandler orderCommandHandler) {
         ThreadFactory threadFactory = runnable -> {
             Thread thread = new Thread(runnable, "matching-core-thread");
             thread.setDaemon(true);

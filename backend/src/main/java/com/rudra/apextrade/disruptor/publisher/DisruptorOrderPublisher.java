@@ -20,28 +20,25 @@ public class DisruptorOrderPublisher {
         this.ringBuffer = ringBuffer;
     }
 
-    public CompletableFuture<List<Trade>> publishPlaceOrder(long orderId, long userId, Side side,
-                                                            long price, long quantity, OrderType orderType) {
-        CompletableFuture<List<Trade>> future = new CompletableFuture<>();
+    public void publishPlaceOrder(long orderId, long userId, Side side,
+                                  long price, long quantity, OrderType orderType, long timestamp) {
+
         long sequence = ringBuffer.next();
         try {
             OrderCommandEvent event = ringBuffer.get(sequence);
-            event.set(CommandType.PLACE_ORDER, userId, orderId, side, price, quantity, orderType, future);
+            event.set(CommandType.PLACE_ORDER, userId, orderId, side, price, quantity, orderType, timestamp);
         } finally {
             ringBuffer.publish(sequence);
         }
-        return future;
     }
 
-    public CompletableFuture<List<Trade>> publishCancelOrder(long orderId, long userId) {
-        CompletableFuture<List<Trade>> future = new CompletableFuture<>();
+    public void publishCancelOrder(long orderId, long userId) {
         long sequence = ringBuffer.next();
         try {
             OrderCommandEvent event = ringBuffer.get(sequence);
-            event.setCancel(orderId, userId, future);
+            event.setCancel(orderId, userId);
         } finally {
             ringBuffer.publish(sequence);
         }
-        return future;
     }
 }
