@@ -70,7 +70,7 @@ public class MatchingEngine {
         return remainingQuantity;
     }
 
-    public void cancelOrder(long orderId) {
-        orderBook.cancelOrder(orderId);
+    public boolean cancelOrder(long orderId) {
+        return orderBook.cancelOrder(orderId);
     }
 }
