@@ -144,4 +144,39 @@ class MatchingEngineTest {
 
         assertEquals(2, tinyBook.hasAsks() ? 2 : 0);
     }
+
+    @Test
+    @DisplayName("LTP: Verifies seeded constructor anchor price vs default 0L initialization")
+    void testLTPConstructorInitialization() {
+        // Default engine in setUp() starts at 0L
+        assertEquals(0L, engine.getLastTradedPrice(), "Default constructor must initialize LTP to 0L");
+
+        // Seeded engine starts at reference price
+        OrderBook customBook = new OrderBook("ETH/USDT", orderPool);
+        MatchingEngine seededEngine = new MatchingEngine(customBook, 3_500_000L);
+        assertEquals(3_500_000L, seededEngine.getLastTradedPrice(), "Seeded constructor must anchor LTP correctly");
+    }
+
+    @Test
+    @DisplayName("LTP: Verifies maker price execution, multi-order suppression, and multi-level sweep transitions")
+    void testLTPExecutionAndStoreSuppression() {
+        // 1. Maker orders resting at same level (65,000)
+        engine.processOrder(101L, 1L, Side.SELL, 6_500_000L, 50L, OrderType.LIMIT, 1000L);
+        engine.processOrder(102L, 2L, Side.SELL, 6_500_000L, 50L, OrderType.LIMIT, 1001L);
+        assertEquals(0L, engine.getLastTradedPrice(), "Resting orders must never mutate LTP");
+
+        // 2. Taker sweeps BOTH maker orders at 65,000
+        // (Tests store suppression: First fill writes 65,000; second fill matches and skips redundant store)
+        engine.processOrder(103L, 3L, Side.BUY, 6_500_000L, 100L, OrderType.LIMIT, 1002L);
+        assertEquals(6_500_000L, engine.getLastTradedPrice(), "LTP must update to 65,000 on execution");
+
+        // 3. Multi-level sweep transition: Place Maker orders at 65,100 and 65,200
+        engine.processOrder(104L, 4L, Side.SELL, 6_510_000L, 50L, OrderType.LIMIT, 1003L);
+        engine.processOrder(105L, 5L, Side.SELL, 6_520_000L, 50L, OrderType.LIMIT, 1004L);
+
+        // 4. Large aggressive Taker sweeps both levels (65,100 and 65,200)
+        engine.processOrder(106L, 6L, Side.BUY, 6_525_000L, 100L, OrderType.LIMIT, 1005L);
+        assertEquals(6_520_000L, engine.getLastTradedPrice(), "LTP must transition to the final executed price level (65,200)");
+    }
+
 }

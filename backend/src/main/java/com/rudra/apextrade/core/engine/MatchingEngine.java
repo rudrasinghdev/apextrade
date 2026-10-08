@@ -8,9 +8,14 @@ import lombok.Getter;
 public class MatchingEngine {
 
     private final OrderBook orderBook;
+    private volatile long lastTradedPrice;
 
     public MatchingEngine(OrderBook orderBook) {
+        this(orderBook, 0);
+    }
+    public MatchingEngine(OrderBook orderBook, long listingPrice) {
         this.orderBook = orderBook;
+        this.lastTradedPrice = listingPrice;
     }
 
     public void processOrder(long userId, long orderId, Side side, long price,
@@ -51,6 +56,7 @@ public class MatchingEngine {
     }
 
     private long matchAgainstLevel(long remainingQuantity, PriceLevel level) {
+        long currentLevelPrice = level.getPrice();
         while (remainingQuantity > 0 && !level.isEmpty()) {
             Order makerOrder = level.getFirstOrder();
             long matchQuantity = Math.min(makerOrder.getRemainingQuantity(), remainingQuantity);
@@ -58,6 +64,10 @@ public class MatchingEngine {
             remainingQuantity -= matchQuantity;
             makerOrder.fill(matchQuantity);
             level.reduceVolume(matchQuantity);
+
+            if (this.lastTradedPrice != currentLevelPrice) {
+                this.lastTradedPrice = currentLevelPrice;
+            }
 
             if (makerOrder.isFilled()) {
                 orderBook.removeFilledOrder(makerOrder);
