@@ -1,10 +1,7 @@
 package com.rudra.apextrade.core.engine;
 
 import com.rudra.apextrade.core.book.OrderBook;
-import com.rudra.apextrade.core.order.Order;
-import com.rudra.apextrade.core.order.OrderType;
-import com.rudra.apextrade.core.order.PriceLevel;
-import com.rudra.apextrade.core.order.Side;
+import com.rudra.apextrade.core.order.*;
 import lombok.Getter;
 
 @Getter
@@ -27,8 +24,7 @@ public class MatchingEngine {
         }
 
         if (remainingQuantity > 0 && orderType == OrderType.LIMIT) {
-            Order restingOrder = new Order(orderId, userId, side, orderType, price, remainingQuantity, timestamp);
-            orderBook.addOrder(restingOrder);
+            orderBook.addOrder(userId, orderId, side, price, remainingQuantity, orderType, timestamp);
         }
     }
 

@@ -5,13 +5,13 @@ import lombok.Getter;
 @Getter
 public class Order {
 
-    private final long orderId;
-    private final long userId;
-    private final Side side;
-    private final OrderType type;
-    private final long price;
-    private final long initialQuantity;
-    private final long timestamp;
+    private long orderId;
+    private long userId;
+    private Side side;
+    private OrderType type;
+    private long price;
+    private long initialQuantity;
+    private long timestamp;
     private long remainingQuantity;
     private OrderStatus status;
 
@@ -19,16 +19,28 @@ public class Order {
     Order next;
     PriceLevel parentLevel;
 
-    public Order(long orderId, long userId, Side side, OrderType type, long price, long initialQuantity, long timestamp) {
-        this.orderId = orderId;
+    public void set(long userId, long orderId, Side side, long price, long initialQuantity, OrderType type, long timestamp) {
         this.userId = userId;
+        this.orderId = orderId;
         this.side = side;
-        this.type = type;
         this.price = price;
         this.initialQuantity = initialQuantity;
+        this.type = type;
         this.timestamp = timestamp;
         this.remainingQuantity = initialQuantity;
         this.status = OrderStatus.NEW;
+    }
+
+    public void reset() {
+        this.orderId = 0;
+        this.userId = 0;
+        this.side = null;
+        this.type = null;
+        this.price = 0;
+        this.initialQuantity = 0;
+        this.timestamp = 0;
+        this.remainingQuantity = 0;
+        this.status = null;
     }
 
     public void fill(long quantity) {

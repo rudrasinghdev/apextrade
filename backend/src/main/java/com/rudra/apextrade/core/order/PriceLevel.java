@@ -17,8 +17,8 @@ public class  PriceLevel {
         this.totalVolume = 0L;
         this.orderCount = 0;
 
-        this.head = new Order(-1, -1, null, null, price, 0, 0);
-        this.tail = new Order(-1, -1, null, null, price, 0, 0);
+        this.head = new Order();
+        this.tail = new Order();
 
         this.head.next = this.tail;
         this.tail.prev = this.head;

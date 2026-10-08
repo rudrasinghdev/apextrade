@@ -1,8 +1,6 @@
 package com.rudra.apextrade.core.book;
 
-import com.rudra.apextrade.core.order.Order;
-import com.rudra.apextrade.core.order.PriceLevel;
-import com.rudra.apextrade.core.order.Side;
+import com.rudra.apextrade.core.order.*;
 
 import java.util.*;
 
@@ -12,15 +10,23 @@ public class OrderBook {
     private final NavigableMap<Long, PriceLevel> bids;
     private final NavigableMap<Long, PriceLevel> asks;
     private final Map<Long, Order> orderMap;
+    private final OrderPool orderPool;
 
-    public OrderBook(String symbol) {
+    public OrderBook(String symbol, OrderPool orderPool) {
         this.symbol = symbol;
         this.bids = new TreeMap<>(Collections.reverseOrder());
         this.asks = new TreeMap<>();
         this.orderMap = new HashMap<>();
+        this.orderPool = orderPool;
     }
 
-    public void addOrder(Order order) {
+    public void addOrder(long userId, long orderId, Side side, long price,
+                         long quantity, OrderType orderType, long timestamp) {
+        Order order = orderPool.borrow();
+        if(order == null) {
+            return;
+        }
+        order.set(userId, orderId, side, price, quantity, orderType, timestamp);
         NavigableMap<Long, PriceLevel> book = getBook(order.getSide());
         PriceLevel level = book.computeIfAbsent(order.getPrice(), PriceLevel::new);
         level.append(order);
@@ -31,7 +37,7 @@ public class OrderBook {
         return side == Side.BUY ? bids : asks;
     }
 
-    public boolean cancelOrder(Long id) {
+    public boolean cancelOrder(long id) {
         Order order = orderMap.remove(id);
         if(order == null) {
             return false;
@@ -44,6 +50,7 @@ public class OrderBook {
             }
         }
         order.cancel();
+        orderPool.release(order);
         return true;
     }
 
@@ -56,6 +63,7 @@ public class OrderBook {
             }
         }
         orderMap.remove(order.getOrderId());
+        orderPool.release(order);
     }
 
     public PriceLevel getBestBid() {

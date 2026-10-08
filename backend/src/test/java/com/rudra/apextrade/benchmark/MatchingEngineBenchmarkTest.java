@@ -6,6 +6,7 @@ import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import com.rudra.apextrade.core.book.OrderBook;
 import com.rudra.apextrade.core.engine.MatchingEngine;
+import com.rudra.apextrade.core.order.OrderPool;
 import com.rudra.apextrade.core.order.OrderType;
 import com.rudra.apextrade.core.order.Side;
 import com.rudra.apextrade.disruptor.event.CommandType;
@@ -34,8 +35,9 @@ public class MatchingEngineBenchmarkTest {
     }
 
     private void executeBenchmark() throws InterruptedException {
-        // 1. Initialize Core Engine Pipeline
-        OrderBook orderBook = new OrderBook("BTC/USDT");
+        // 1. Initialize Zero-GC Core Engine Pipeline
+        OrderPool orderPool = new OrderPool();
+        OrderBook orderBook = new OrderBook("BTC/USDT", orderPool);
         MatchingEngine matchingEngine = new MatchingEngine(orderBook);
         OrderCommandHandler handler = new OrderCommandHandler(matchingEngine);
         OrderCommandEventFactory factory = new OrderCommandEventFactory();
@@ -58,7 +60,7 @@ public class MatchingEngineBenchmarkTest {
         RingBuffer<OrderCommandEvent> ringBuffer = disruptor.start();
 
         System.out.println("===============================================================");
-        System.out.println("          APEXTRADE LMAX MATCHING ENGINE BENCHMARK             ");
+        System.out.println("      APEXTRADE LMAX ZERO-GC MATCHING ENGINE BENCHMARK         ");
         System.out.println("===============================================================");
 
         // 2. Phase 1: JIT C2 Warmup
@@ -70,7 +72,7 @@ public class MatchingEngineBenchmarkTest {
         drainRingBuffer(ringBuffer);
         System.out.println("DONE.");
 
-        // 3. Phase 2: Pre-Seed Book Depth
+        // 3. Phase 2: Pre-Seed Book Depth (Resting maker orders from OrderPool)
         int seedLevels = 20;
         int ordersPerLevel = 500;
         int totalSeededOrders = seedLevels * ordersPerLevel; // 10,000 resting maker orders
@@ -80,12 +82,11 @@ public class MatchingEngineBenchmarkTest {
         for (int lvl = 0; lvl < seedLevels; lvl++) {
             long price = 65001_00L + (lvl * 100L); // Asks from $65,001 to $65,020
             for (int o = 0; o < ordersPerLevel; o++) {
-                // Large quantity so book doesn't exhaust during test
                 publishOrder(ringBuffer, ++makerOrderId, 201L, Side.SELL, price, 1_000L, OrderType.LIMIT);
             }
         }
         drainRingBuffer(ringBuffer);
-        System.out.println("DONE. (Best Ask: " + (orderBook.getBestAsk().getPrice() / 100.0) + ")");
+        System.out.println("DONE. (Available in OrderPool: " + orderPool.getAvailableCount() + ")");
 
         // 4. Phase 3: The 1,000,000 Order Blast
         System.out.println("[3/3] Blasting " + String.format("%,d", BENCHMARK_ORDERS) + " unthrottled orders through RingBuffer...");
@@ -120,6 +121,7 @@ public class MatchingEngineBenchmarkTest {
         System.out.printf("  Total Elapsed Time     : %.2f ms (%.4f seconds)%n", elapsedNanos / 1_000_000.0, elapsedSeconds);
         System.out.printf("  Throughput (TPS)       : %,.0f Orders/Second%n", ordersPerSecond);
         System.out.printf("  Avg Processing Time    : %.1f nanoseconds / order%n", avgLatencyNanos);
+        System.out.printf("  Remaining Pool Orders  : %,d / %,d%n", orderPool.getAvailableCount(), orderPool.getCapacity());
         System.out.println("===============================================================");
 
         disruptor.shutdown();

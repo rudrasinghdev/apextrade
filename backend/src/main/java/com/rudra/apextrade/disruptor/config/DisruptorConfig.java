@@ -6,6 +6,7 @@ import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import com.rudra.apextrade.core.book.OrderBook;
 import com.rudra.apextrade.core.engine.MatchingEngine;
+import com.rudra.apextrade.core.order.OrderPool;
 import com.rudra.apextrade.disruptor.event.OrderCommandEvent;
 import com.rudra.apextrade.disruptor.event.OrderCommandEventFactory;
 import com.rudra.apextrade.disruptor.handler.OrderCommandHandler;
@@ -20,12 +21,17 @@ public class DisruptorConfig {
     private static final int BUFFER_SIZE = 65536;
 
     @Bean
-    public OrderBook orderBook() {
-        return new OrderBook("BTC/USDT");
+    public OrderPool orderPool() {
+        return new OrderPool();
     }
 
     @Bean
-    public MatchingEngine matchingEngine(OrderBook orderBook) {
+    public OrderBook orderBook(OrderPool orderPool) {
+        return new OrderBook("BTC/USDT", orderPool);
+    }
+
+    @Bean
+    public MatchingEngine matchingEngine(OrderBook orderBook, OrderPool orderPool) {
         return new MatchingEngine(orderBook);
     }
 
