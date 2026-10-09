@@ -10,6 +10,7 @@ import com.rudra.apextrade.core.order.OrderPool;
 import com.rudra.apextrade.disruptor.event.OrderCommandEvent;
 import com.rudra.apextrade.disruptor.event.OrderCommandEventFactory;
 import com.rudra.apextrade.disruptor.handler.OrderCommandHandler;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -31,8 +32,8 @@ public class DisruptorConfig {
     }
 
     @Bean
-    public MatchingEngine matchingEngine(OrderBook orderBook, OrderPool orderPool) {
-        return new MatchingEngine(orderBook);
+    public MatchingEngine matchingEngine(OrderBook orderBook, OrderPool orderPool, @Value("${apextrade.engine.listing-price}") long listingPrice) {
+        return new MatchingEngine(orderBook, listingPrice);
     }
 
     @Bean

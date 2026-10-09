@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
+@SpringBootTest(properties = "apextrade.runner.enabled=false")
 class DisruptorPipelineSmokeTest {
 
     @Autowired

@@ -130,7 +130,7 @@ class MatchingEngineTest {
         // Setup isolated book with a tiny capacity pool of 2
         OrderPool tinyPool = new OrderPool(2);
         OrderBook tinyBook = new OrderBook("ETH/USDT", tinyPool);
-        MatchingEngine tinyEngine = new MatchingEngine(tinyBook);
+        MatchingEngine tinyEngine = new MatchingEngine(tinyBook, 50000);
 
         // Fill pool capacity
         tinyEngine.processOrder(1L, 1L, Side.SELL, 3000_00L, 10L, OrderType.LIMIT, 1000L);
