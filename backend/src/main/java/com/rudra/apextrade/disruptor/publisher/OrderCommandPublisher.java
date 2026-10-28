@@ -1,22 +1,18 @@
 package com.rudra.apextrade.disruptor.publisher;
 
 import com.lmax.disruptor.RingBuffer;
-import com.rudra.apextrade.core.event.Trade;
 import com.rudra.apextrade.core.order.OrderType;
 import com.rudra.apextrade.core.order.Side;
 import com.rudra.apextrade.disruptor.event.CommandType;
 import com.rudra.apextrade.disruptor.event.OrderCommandEvent;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-
 @Service
-public class DisruptorOrderPublisher {
+public class OrderCommandPublisher {
 
     private final RingBuffer<OrderCommandEvent> ringBuffer;
 
-    public DisruptorOrderPublisher(RingBuffer<OrderCommandEvent> ringBuffer) {
+    public OrderCommandPublisher(RingBuffer<OrderCommandEvent> ringBuffer) {
         this.ringBuffer = ringBuffer;
     }
 

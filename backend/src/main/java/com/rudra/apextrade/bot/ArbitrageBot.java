@@ -4,7 +4,7 @@ import com.rudra.apextrade.core.book.OrderBook;
 import com.rudra.apextrade.core.order.OrderType;
 import com.rudra.apextrade.core.order.PriceLevel;
 import com.rudra.apextrade.core.order.Side;
-import com.rudra.apextrade.disruptor.publisher.DisruptorOrderPublisher;
+import com.rudra.apextrade.disruptor.publisher.OrderCommandPublisher;
 
 /**
  * Aggressive cross-spread taker bot (designed to run pinned to Core 2).
@@ -13,7 +13,7 @@ import com.rudra.apextrade.disruptor.publisher.DisruptorOrderPublisher;
 public class ArbitrageBot implements Runnable {
 
     private final OrderBook orderBook;
-    private final DisruptorOrderPublisher publisher;
+    private final OrderCommandPublisher publisher;
     private final FastFairPriceGenerator priceGenerator;
     private final long userId;
     private final long sweepQuantity;
@@ -22,7 +22,7 @@ public class ArbitrageBot implements Runnable {
     private volatile boolean running;
 
     public ArbitrageBot(OrderBook orderBook,
-                        DisruptorOrderPublisher publisher,
+                        OrderCommandPublisher publisher,
                         FastFairPriceGenerator priceGenerator,
                         long userId,
                         long sweepQuantity) {

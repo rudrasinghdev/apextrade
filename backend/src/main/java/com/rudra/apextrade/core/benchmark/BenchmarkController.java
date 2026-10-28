@@ -3,7 +3,7 @@ package com.rudra.apextrade.core.benchmark;
 import com.rudra.apextrade.core.order.OrderPool;
 import com.rudra.apextrade.core.order.OrderType;
 import com.rudra.apextrade.core.order.Side;
-import com.rudra.apextrade.disruptor.publisher.DisruptorOrderPublisher;
+import com.rudra.apextrade.disruptor.publisher.OrderCommandPublisher;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,10 +11,10 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/benchmark")
 public class BenchmarkController {
 
-    private final DisruptorOrderPublisher publisher;
+    private final OrderCommandPublisher publisher;
     private final OrderPool orderPool;
 
-    public BenchmarkController(DisruptorOrderPublisher publisher, OrderPool orderPool) {
+    public BenchmarkController(OrderCommandPublisher publisher, OrderPool orderPool) {
         this.publisher = publisher;
         this.orderPool = orderPool;
     }

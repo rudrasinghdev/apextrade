@@ -4,7 +4,7 @@ import com.rudra.apextrade.core.book.OrderBook;
 import com.rudra.apextrade.core.engine.MatchingEngine;
 import com.rudra.apextrade.core.order.OrderType;
 import com.rudra.apextrade.core.order.Side;
-import com.rudra.apextrade.disruptor.publisher.DisruptorOrderPublisher;
+import com.rudra.apextrade.disruptor.publisher.OrderCommandPublisher;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ArbitrageBotTest {
 
     @Autowired
-    private DisruptorOrderPublisher publisher;
+    private OrderCommandPublisher publisher;
 
     @Autowired
     private OrderBook orderBook;

@@ -3,13 +3,13 @@ package com.rudra.apextrade.bot;
 import com.rudra.apextrade.core.engine.MatchingEngine;
 import com.rudra.apextrade.core.order.OrderType;
 import com.rudra.apextrade.core.order.Side;
-import com.rudra.apextrade.disruptor.publisher.DisruptorOrderPublisher;
+import com.rudra.apextrade.disruptor.publisher.OrderCommandPublisher;
 import lombok.Getter;
 
 public class MarketMakerBot implements Runnable {
 
     private final MatchingEngine engine;
-    private final DisruptorOrderPublisher publisher;
+    private final OrderCommandPublisher publisher;
     private final long userId;
 
     private final int levels;
@@ -31,7 +31,7 @@ public class MarketMakerBot implements Runnable {
     private volatile boolean running;
 
     public MarketMakerBot(MatchingEngine engine,
-                          DisruptorOrderPublisher publisher,
+                          OrderCommandPublisher publisher,
                           long userId,
                           int levels,
                           int ordersPerLevel,
