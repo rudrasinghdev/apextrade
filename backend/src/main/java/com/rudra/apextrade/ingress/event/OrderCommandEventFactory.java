@@ -1,4 +1,4 @@
-package com.rudra.apextrade.disruptor.event;
+package com.rudra.apextrade.ingress.event;
 
 import com.lmax.disruptor.EventFactory;
 import org.springframework.stereotype.Component;

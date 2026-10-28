@@ -1,9 +1,9 @@
-package com.rudra.apextrade.disruptor;
+package com.rudra.apextrade.ingress;
 
 import com.rudra.apextrade.core.book.OrderBook;
 import com.rudra.apextrade.core.order.OrderType;
 import com.rudra.apextrade.core.order.Side;
-import com.rudra.apextrade.disruptor.publisher.OrderCommandPublisher;
+import com.rudra.apextrade.ingress.publisher.OrderCommandPublisher;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(properties = "apextrade.runner.enabled=false")
-class DisruptorPipelineSmokeTest {
+class IngressPipelineSmokeTest {
 
     @Autowired
     private OrderCommandPublisher publisher;

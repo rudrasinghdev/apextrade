@@ -1,4 +1,4 @@
-package com.rudra.apextrade.disruptor.config;
+package com.rudra.apextrade.ingress.config;
 
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.YieldingWaitStrategy;
@@ -7,9 +7,9 @@ import com.lmax.disruptor.dsl.ProducerType;
 import com.rudra.apextrade.core.book.OrderBook;
 import com.rudra.apextrade.core.engine.MatchingEngine;
 import com.rudra.apextrade.core.order.OrderPool;
-import com.rudra.apextrade.disruptor.event.OrderCommandEvent;
-import com.rudra.apextrade.disruptor.event.OrderCommandEventFactory;
-import com.rudra.apextrade.disruptor.handler.OrderCommandHandler;
+import com.rudra.apextrade.ingress.event.OrderCommandEvent;
+import com.rudra.apextrade.ingress.event.OrderCommandEventFactory;
+import com.rudra.apextrade.ingress.handler.OrderCommandHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.concurrent.ThreadFactory;
 
 @Configuration
-public class DisruptorConfig {
+public class IngressDisruptorConfig {
 
     private static final int BUFFER_SIZE = 65536;
 

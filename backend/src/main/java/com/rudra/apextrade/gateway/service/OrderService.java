@@ -1,6 +1,6 @@
 package com.rudra.apextrade.gateway.service;
 
-import com.rudra.apextrade.disruptor.publisher.OrderCommandPublisher;
+import com.rudra.apextrade.ingress.publisher.OrderCommandPublisher;
 import com.rudra.apextrade.gateway.dto.OrderRequest;
 import com.rudra.apextrade.gateway.dto.OrderResponse;
 import org.springframework.stereotype.Service;
