@@ -5,13 +5,13 @@ import com.rudra.apextrade.core.order.Side;
 import lombok.Getter;
 import lombok.Setter;
 
-class OrderCommandEventLhsPadding {
+abstract class OrderCommandEventLhsPadding {
     protected long p1, p2, p3, p4;
 }
 
 @Getter
 @Setter
-class OrderCommandEventFields extends OrderCommandEventLhsPadding{
+abstract class OrderCommandEventFields extends OrderCommandEventLhsPadding{
     protected CommandType commandType;
     protected long userId;
     protected long orderId;
