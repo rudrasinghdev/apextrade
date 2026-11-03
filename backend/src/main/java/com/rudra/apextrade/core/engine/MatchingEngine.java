@@ -2,6 +2,7 @@ package com.rudra.apextrade.core.engine;
 
 import com.rudra.apextrade.core.book.OrderBook;
 import com.rudra.apextrade.core.order.*;
+import com.rudra.apextrade.core.trade.TradeListener;
 import lombok.Getter;
 
 @Getter
@@ -9,13 +10,21 @@ public class MatchingEngine {
 
     private final OrderBook orderBook;
     private volatile long lastTradedPrice;
+    private final TradeListener tradeListener;
+    private long nextTradeId = 1L;
 
     public MatchingEngine(OrderBook orderBook) {
-        this(orderBook, 0);
+        this(orderBook, 0L, null);
     }
+
     public MatchingEngine(OrderBook orderBook, long listingPrice) {
+        this(orderBook, listingPrice, null);
+    }
+
+    public MatchingEngine(OrderBook orderBook, long listingPrice, TradeListener tradeListener) {
         this.orderBook = orderBook;
         this.lastTradedPrice = listingPrice;
+        this.tradeListener = tradeListener;
     }
 
     public void processOrder(long userId, long orderId, Side side, long price,
@@ -23,9 +32,9 @@ public class MatchingEngine {
 
         long remainingQuantity = quantity;
         if (side == Side.BUY) {
-            remainingQuantity = matchBuyOrder(price, remainingQuantity, orderType);
+            remainingQuantity = matchBuyOrder(orderId, side, price, remainingQuantity, orderType, timestamp);
         } else {
-            remainingQuantity = matchSellOrder(price, remainingQuantity, orderType);
+            remainingQuantity = matchSellOrder(orderId, side, price, remainingQuantity, orderType, timestamp);
         }
 
         if (remainingQuantity > 0 && orderType == OrderType.LIMIT) {
@@ -33,29 +42,29 @@ public class MatchingEngine {
         }
     }
 
-    private long matchBuyOrder(long price, long remainingQuantity, OrderType orderType) {
+    private long matchBuyOrder(long takerOrderId, Side takerSide, long price, long remainingQuantity, OrderType orderType, long timestamp) {
         while (remainingQuantity > 0 && orderBook.hasAsks()) {
             PriceLevel bestAsk = orderBook.getBestAsk();
             if (orderType == OrderType.LIMIT && bestAsk.getPrice() > price) {
                 break;
             }
-            remainingQuantity = matchAgainstLevel(remainingQuantity, bestAsk);
+            remainingQuantity = matchAgainstLevel(takerOrderId, takerSide, remainingQuantity, bestAsk, timestamp);
         }
         return remainingQuantity;
     }
 
-    private long matchSellOrder(long price, long remainingQuantity, OrderType orderType) {
+    private long matchSellOrder(long takerOrderId, Side takerSide, long price, long remainingQuantity, OrderType orderType, long timestamp) {
         while (remainingQuantity > 0 && orderBook.hasBids()) {
             PriceLevel bestBids = orderBook.getBestBid();
             if (orderType == OrderType.LIMIT && bestBids.getPrice() < price) {
                 break;
             }
-            remainingQuantity = matchAgainstLevel(remainingQuantity, bestBids);
+            remainingQuantity = matchAgainstLevel(takerOrderId, takerSide, remainingQuantity, bestBids, timestamp);
         }
         return remainingQuantity;
     }
 
-    private long matchAgainstLevel(long remainingQuantity, PriceLevel level) {
+    private long matchAgainstLevel(long takerOrderId, Side takerSide, long remainingQuantity, PriceLevel level, long timestamp) {
         long currentLevelPrice = level.getPrice();
         while (remainingQuantity > 0 && !level.isEmpty()) {
             Order makerOrder = level.getFirstOrder();
@@ -67,6 +76,18 @@ public class MatchingEngine {
 
             if (this.lastTradedPrice != currentLevelPrice) {
                 this.lastTradedPrice = currentLevelPrice;
+            }
+
+            if (tradeListener != null) {
+                tradeListener.onTrade(
+                        nextTradeId++,
+                        makerOrder.getOrderId(),
+                        takerOrderId,
+                        takerSide,
+                        currentLevelPrice,
+                        matchQuantity,
+                        timestamp
+                );
             }
 
             if (makerOrder.isFilled()) {

@@ -7,6 +7,7 @@ import com.lmax.disruptor.dsl.ProducerType;
 import com.rudra.apextrade.core.book.OrderBook;
 import com.rudra.apextrade.core.engine.MatchingEngine;
 import com.rudra.apextrade.core.order.OrderPool;
+import com.rudra.apextrade.egress.publisher.TradeEgressPublisher;
 import com.rudra.apextrade.ingress.event.OrderCommandEvent;
 import com.rudra.apextrade.ingress.event.OrderCommandEventFactory;
 import com.rudra.apextrade.ingress.handler.OrderCommandHandler;
@@ -32,8 +33,10 @@ public class IngressDisruptorConfig {
     }
 
     @Bean
-    public MatchingEngine matchingEngine(OrderBook orderBook, OrderPool orderPool, @Value("${apextrade.engine.listing-price}") long listingPrice) {
-        return new MatchingEngine(orderBook, listingPrice);
+    public MatchingEngine matchingEngine(OrderBook orderBook,
+                                         @Value("${apextrade.engine.listing-price}") long listingPrice,
+                                         TradeEgressPublisher tradeEgressPublisher) {
+        return new MatchingEngine(orderBook, listingPrice, tradeEgressPublisher);
     }
 
     @Bean
