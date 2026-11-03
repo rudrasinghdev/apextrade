@@ -8,6 +8,7 @@
 
   // --- Configuration & Dynamic Gateway ---
   const DEFAULT_PORT = 8080;
+  const DEFAULT_PROD_GATEWAY = 'apextrade-core-backend.onrender.com';
   const GATEWAY_STORAGE_KEY = 'apextrade_gateway_host';
 
   function resolveGatewayHost() {
@@ -15,9 +16,9 @@
     if (saved && saved.trim()) {
       return saved.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
     }
-    // If running on Vercel, there is no local backend on Vercel
-    if (window.location.hostname.includes('vercel.app')) {
-      return '';
+    // If running on Vercel or remote web hosting, default to production Render backend
+    if (window.location.hostname.includes('vercel.app') || (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
+      return DEFAULT_PROD_GATEWAY;
     }
     if (window.location.protocol.startsWith('http')) {
       return window.location.host;
