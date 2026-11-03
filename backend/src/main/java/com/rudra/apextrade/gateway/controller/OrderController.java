@@ -49,9 +49,5 @@ public class OrderController {
         OrderResponse response = orderService.cancelOrder(orderId);
         return ResponseEntity.ok(response);
     }
-
-    @GetMapping("/health")
-    public ResponseEntity<String> health() {
-        return ResponseEntity.ok("ApexTrade Gateway Online");
-    }
+    
 }

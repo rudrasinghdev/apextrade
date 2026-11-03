@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class HealthController {
 
-    @GetMapping({"/health", "/actuator/health"})
+    @GetMapping({"/health"})
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("ApexTrade Core Online");
     }
