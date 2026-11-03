@@ -1,5 +1,6 @@
 package com.rudra.apextrade.gateway.websocket;
 
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -15,18 +16,18 @@ public class TradeWebSocketHandler extends TextWebSocketHandler {
     private final CopyOnWriteArraySet<WebSocketSession> sessions = new CopyOnWriteArraySet<>();
 
     @Override
-    public void afterConnectionEstablished(WebSocketSession session) {
+    public void afterConnectionEstablished(@NonNull WebSocketSession session) {
         WebSocketSession safeSession = new ConcurrentWebSocketSessionDecorator(session, 100, 512 * 1024);
         sessions.add(safeSession);
     }
 
     @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+    public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
         sessions.remove(session);
     }
 
     @Override
-    public void handleTransportError(WebSocketSession session, Throwable exception) {
+    public void handleTransportError(@NonNull WebSocketSession session, @NonNull Throwable  exception) {
         sessions.remove(session);
     }
 

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ApexTrade Core // Ultra-Low Latency Trading Terminal</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="theme-dark">
+  <div id="app-container">
+
+    <!-- ==================== VIEW 1: WELCOME SCREEN ==================== -->
+    <section id="welcome-view" class="view active">
+      <div class="welcome-card">
+        <div class="welcome-header">
+          <span class="badge-accent">APEXTRADE CORE v1.0</span>
+          <h1 class="welcome-title">ApexTrade Core</h1>
+          <p class="welcome-subtitle">Ultra-Low Latency Order Matching Engine & Gateway</p>
+        </div>
+
+        <div class="specs-grid">
+          <div class="spec-card">
+            <div class="spec-label">INGRESS PIPELINE</div>
+            <div class="spec-value">LMAX Disruptor</div>
+            <div class="spec-detail">Zero-GC, 65k ring buffer, mechanical sympathy</div>
+          </div>
+          <div class="spec-card">
+            <div class="spec-label">MATCHING ENGINE</div>
+            <div class="spec-value">Deterministic Core</div>
+            <div class="spec-detail">In-memory B-Tree Price-Time Priority</div>
+          </div>
+          <div class="spec-card">
+            <div class="spec-label">EGRESS PIPELINE</div>
+            <div class="spec-value">SPSC Ring Buffer</div>
+            <div class="spec-detail">5-layer cache padded, lock-free 2PC commit</div>
+          </div>
+          <div class="spec-card">
+            <div class="spec-label">STREAMING GATEWAY</div>
+            <div class="spec-value">WebSocket Stream</div>
+            <div class="spec-detail">Concurrent session broadcast (/ws/trades)</div>
+          </div>
+        </div>
+
+        <div class="welcome-actions">
+          <button id="btn-enter-terminal" class="btn btn-primary btn-large">
+            <span>Enter Trading Terminal</span>
+            <svg class="icon-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="welcome-footer">
+          <div class="status-indicator">
+            <span class="status-dot ping-alive"></span>
+            <span>REST Gateway: <code class="code-pill">http://localhost:8080/api/v1/orders</code></span>
+          </div>
+          <div class="status-indicator">
+            <span class="status-dot ping-alive"></span>
+            <span>Trade Feed: <code class="code-pill">ws://localhost:8080/ws/trades</code></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 2: TRADING TERMINAL ==================== -->
+    <section id="terminal-view" class="view hidden">
+      <!-- Terminal Top Navigation Bar -->
+      <header class="terminal-navbar">
+        <div class="nav-left">
+          <div class="brand">
+            <span class="brand-logo">▲</span>
+            <span class="brand-text">APEXTRADE<span class="accent-text">.CORE</span></span>
+          </div>
+          <div class="ws-status-badge" id="ws-status">
+            <span class="status-dot" id="ws-dot"></span>
+            <span id="ws-status-text">CONNECTING...</span>
+          </div>
+        </div>
+
+        <!-- Real-time Market Strip -->
+        <div class="market-strip">
+          <div class="market-item">
+            <span class="market-label">INSTRUMENT</span>
+            <span class="market-val font-mono" id="instrument-name">BTC / USDT</span>
+          </div>
+          <div class="market-item">
+            <span class="market-label">LAST TRADED PRICE (LTP)</span>
+            <span class="market-val font-mono price-display" id="ltp-display">--</span>
+          </div>
+          <div class="market-item">
+            <span class="market-label">LAST QTY</span>
+            <span class="market-val font-mono" id="last-qty-display">--</span>
+          </div>
+          <div class="market-item">
+            <span class="market-label">SESSION VOLUME</span>
+            <span class="market-val font-mono" id="total-vol-display">0</span>
+          </div>
+          <div class="market-item">
+            <span class="market-label">TOTAL TRADES</span>
+            <span class="market-val font-mono" id="trade-count-display">0</span>
+          </div>
+        </div>
+
+        <div class="nav-right">
+          <div class="user-session-chip">
+            <span class="user-label">USER ID:</span>
+            <input type="number" id="trader-user-id" min="1" value="101" title="Trading User ID">
+          </div>
+          <button id="btn-exit-terminal" class="btn btn-outline btn-sm" title="Return to Welcome Screen">Exit</button>
+        </div>
+      </header>
+
+      <!-- Terminal Main Grid -->
+      <main class="terminal-grid">
+
+        <!-- Column 1: Order Placement Form -->
+        <section class="panel panel-order-entry">
+          <div class="panel-header">
+            <h2>Direct Market Access (DMA)</h2>
+            <span class="panel-subtitle">Post order to Ingress Disruptor</span>
+          </div>
+
+          <div class="panel-body">
+            <!-- Buy / Sell Toggle -->
+            <div class="toggle-group side-toggle" role="group">
+              <button type="button" class="btn-toggle active-buy" id="btn-side-buy" data-side="BUY">BUY</button>
+              <button type="button" class="btn-toggle" id="btn-side-sell" data-side="SELL">SELL</button>
+            </div>
+
+            <!-- Order Type Toggle -->
+            <div class="toggle-group type-toggle" role="group">
+              <button type="button" class="btn-toggle active" id="btn-type-limit" data-type="LIMIT">LIMIT</button>
+              <button type="button" class="btn-toggle" id="btn-type-market" data-type="MARKET">MARKET</button>
+            </div>
+
+            <!-- Order Form -->
+            <form id="order-form" novalidate>
+              <!-- Price Field -->
+              <div class="form-group" id="group-price">
+                <label for="input-price">Limit Price (USDT)</label>
+                <div class="input-with-controls">
+                  <button type="button" class="btn-step" id="btn-price-minus">-10</button>
+                  <input type="number" id="input-price" class="font-mono" value="50000" min="1" step="any" required>
+                  <button type="button" class="btn-step" id="btn-price-plus">+10</button>
+                </div>
+                <div class="quick-presets">
+                  <button type="button" class="btn-preset" data-price-offset="-50">-50</button>
+                  <button type="button" class="btn-preset" data-price-offset="-10">-10</button>
+                  <button type="button" class="btn-preset" data-price-offset="0">LTP</button>
+                  <button type="button" class="btn-preset" data-price-offset="10">+10</button>
+                  <button type="button" class="btn-preset" data-price-offset="50">+50</button>
+                </div>
+              </div>
+
+              <!-- Quantity Field -->
+              <div class="form-group" id="group-qty">
+                <label for="input-qty">Quantity</label>
+                <div class="input-with-controls">
+                  <button type="button" class="btn-step" id="btn-qty-minus">-10</button>
+                  <input type="number" id="input-qty" class="font-mono" value="10" min="1" step="any" required>
+                  <button type="button" class="btn-step" id="btn-qty-plus">+10</button>
+                </div>
+                <div class="quick-presets">
+                  <button type="button" class="btn-preset" data-qty="10">10</button>
+                  <button type="button" class="btn-preset" data-qty="50">50</button>
+                  <button type="button" class="btn-preset" data-qty="100">100</button>
+                  <button type="button" class="btn-preset" data-qty="500">500</button>
+                </div>
+              </div>
+
+              <!-- Order Summary Calculation -->
+              <div class="order-summary font-mono">
+                <div class="summary-row">
+                  <span>Est. Notional:</span>
+                  <span id="summary-notional">500,000 USDT</span>
+                </div>
+              </div>
+
+              <!-- Submit Button -->
+              <button type="submit" id="btn-submit-order" class="btn btn-buy btn-block">
+                Submit BUY Limit Order
+              </button>
+            </form>
+
+            <!-- Quick Demo Helper -->
+            <div class="demo-box">
+              <span class="demo-box-label">QUICK VERIFICATION</span>
+              <button type="button" id="btn-demo-cross" class="btn btn-outline btn-sm btn-block" title="Places BUY @ 50000 and SELL @ 50000 to instantly trigger an execution">
+                ⚡ Place Cross Pair (Match Test)
+              </button>
+            </div>
+
+            <!-- Execution Status Banner -->
+            <div id="order-status-banner" class="status-banner hidden">
+              <div class="status-banner-content">
+                <span class="status-banner-title" id="banner-title">ORDER SUBMITTED</span>
+                <span class="status-banner-desc font-mono" id="banner-desc">--</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Column 2: My Active Orders (Client Cache & Cancel) -->
+        <section class="panel panel-my-orders">
+          <div class="panel-header">
+            <div class="header-with-badge">
+              <h2>My Active Orders</h2>
+              <span class="count-badge font-mono" id="my-orders-count">0</span>
+            </div>
+            <button type="button" id="btn-clear-orders" class="btn btn-link btn-xs" title="Clear cancelled and fully filled orders">
+              Clear Completed
+            </button>
+          </div>
+
+          <div class="panel-body table-container">
+            <table class="data-table" id="table-my-orders">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Time</th>
+                  <th>Side</th>
+                  <th>Type</th>
+                  <th>Price</th>
+                  <th>Qty</th>
+                  <th>Filled</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="my-orders-tbody">
+                <tr class="empty-row" id="my-orders-empty">
+                  <td colspan="9">No active orders placed yet in this session.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Column 3: Public Trade Tape (Live WebSocket Stream) -->
+        <section class="panel panel-trade-tape">
+          <div class="panel-header">
+            <div class="header-with-badge">
+              <h2>Public Trade Feed</h2>
+              <span class="feed-pulse" id="tape-pulse"></span>
+            </div>
+            <div class="header-tools">
+              <label class="toggle-checkbox" title="Toggle automatic scrolling to latest trades">
+                <input type="checkbox" id="chk-autoscroll" checked>
+                <span>Auto-scroll</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="panel-body table-container" id="trade-tape-container">
+            <table class="data-table" id="table-trades">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Side</th>
+                  <th>Price (USDT)</th>
+                  <th>Size</th>
+                  <th>Trade ID</th>
+                  <th>Taker / Maker</th>
+                </tr>
+              </thead>
+              <tbody id="trade-tape-tbody">
+                <tr class="empty-row" id="trade-tape-empty">
+                  <td colspan="6">Waiting for trade executions from matching engine...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      </main>
+    </section>
+
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
+

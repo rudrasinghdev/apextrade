@@ -1,0 +1,982 @@
+/* ==========================================================================
+   ApexTrade Core - High-Performance Trading Terminal Theme
+   ========================================================================== */
+
+:root {
+  --bg-primary: #0b0e14;
+  --bg-secondary: #121721;
+  --bg-panel: #161c28;
+  --bg-surface: #1e2638;
+  --bg-input: #0d121c;
+
+  --border-subtle: #242d40;
+  --border-focus: #00e5ff;
+
+  --text-primary: #f0f4fc;
+  --text-secondary: #8b99b5;
+  --text-muted: #576482;
+
+  --color-buy: #00f076;
+  --color-buy-bg: rgba(0, 240, 118, 0.12);
+  --color-buy-hover: #00d366;
+
+  --color-sell: #ff3b57;
+  --color-sell-bg: rgba(255, 59, 87, 0.12);
+  --color-sell-hover: #e02c46;
+
+  --color-accent: #00e5ff;
+  --color-accent-bg: rgba(0, 229, 255, 0.12);
+
+  --color-warning: #ffb703;
+  --color-warning-bg: rgba(255, 183, 3, 0.12);
+
+  --color-cancelled: #7b879c;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-panel: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-glow-cyan: 0 0 20px rgba(0, 229, 255, 0.25);
+  --shadow-glow-buy: 0 0 15px rgba(0, 240, 118, 0.3);
+  --shadow-glow-sell: 0 0 15px rgba(255, 59, 87, 0.3);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-mono {
+  font-family: var(--font-mono) !important;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ==========================================================================
+   Views & View Switcher
+   ========================================================================== */
+
+.view {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.view.hidden {
+  display: none !important;
+}
+
+/* ==========================================================================
+   VIEW 1: Welcome Screen
+   ========================================================================== */
+
+#welcome-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: radial-gradient(circle at 50% 20%, #152238 0%, var(--bg-primary) 70%);
+}
+
+.welcome-card {
+  max-width: 840px;
+  width: 100%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 3rem;
+  box-shadow: var(--shadow-panel);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+}
+
+.badge-accent {
+  display: inline-block;
+  padding: 4px 12px;
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  margin-bottom: 1.2rem;
+}
+
+.welcome-title {
+  font-size: 2.6rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #fff;
+  margin-bottom: 0.6rem;
+}
+
+.welcome-subtitle {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto 2.5rem;
+}
+
+.specs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+  text-align: left;
+}
+
+.spec-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 1.2rem;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.spec-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-accent);
+}
+
+.spec-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.spec-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.3rem;
+}
+
+.spec-detail {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.welcome-actions {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2.5rem;
+}
+
+.welcome-footer {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.code-pill {
+  background: var(--bg-surface);
+  color: var(--color-accent);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+/* ==========================================================================
+   VIEW 2: Trading Terminal
+   ========================================================================== */
+
+#terminal-view {
+  background: var(--bg-primary);
+}
+
+/* Navigation Bar */
+.terminal-navbar {
+  height: 54px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.2rem;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.nav-left, .nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+}
+
+.brand-logo {
+  color: var(--color-accent);
+  font-size: 16px;
+}
+
+.brand-text .accent-text {
+  color: var(--color-accent);
+}
+
+/* Status Indicators */
+.status-indicator, .ws-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: var(--bg-surface);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: background-color 0.3s;
+}
+
+.status-dot.connected {
+  background: var(--color-buy);
+  box-shadow: 0 0 8px var(--color-buy);
+}
+
+.status-dot.disconnected {
+  background: var(--color-sell);
+  box-shadow: 0 0 8px var(--color-sell);
+}
+
+.status-dot.connecting {
+  background: var(--color-warning);
+  box-shadow: 0 0 8px var(--color-warning);
+  animation: pulse-dot 1.5s infinite;
+}
+
+.status-dot.ping-alive {
+  background: var(--color-buy);
+  box-shadow: 0 0 6px var(--color-buy);
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Market Strip */
+.market-strip {
+  display: flex;
+  align-items: center;
+  gap: 1.8rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 4px 14px;
+  overflow-x: auto;
+}
+
+.market-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.market-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+}
+
+.market-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.price-display {
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  transition: color 0.2s, background-color 0.3s;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.price-up {
+  color: var(--color-buy) !important;
+  background-color: var(--color-buy-bg);
+}
+
+.price-down {
+  color: var(--color-sell) !important;
+  background-color: var(--color-sell-bg);
+}
+
+/* User Session Chip */
+.user-session-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.user-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.user-session-chip input {
+  background: transparent;
+  border: none;
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  width: 50px;
+  outline: none;
+}
+
+/* ==========================================================================
+   Terminal Grid Layout
+   ========================================================================== */
+
+.terminal-grid {
+  display: grid;
+  grid-template-columns: 320px 1.2fr 1.1fr;
+  gap: 10px;
+  padding: 10px;
+  flex: 1;
+  overflow: hidden;
+  height: calc(100vh - 54px);
+}
+
+@media (max-width: 1200px) {
+  .terminal-grid {
+    grid-template-columns: 300px 1fr;
+  }
+  .panel-trade-tape {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 800px) {
+  .terminal-grid {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+    height: auto;
+  }
+  .panel-trade-tape {
+    grid-column: span 1;
+  }
+}
+
+/* Panels */
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-header {
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panel-header h2 {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--text-primary);
+}
+
+.panel-subtitle {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.header-with-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.count-badge {
+  background: var(--bg-surface);
+  color: var(--color-accent);
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.feed-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-buy);
+  display: inline-block;
+  opacity: 0.5;
+}
+
+.feed-pulse.pulse-active {
+  animation: pulse-ring 0.6s ease-out;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 1; box-shadow: 0 0 0 0 rgba(0, 240, 118, 0.7); }
+  70% { transform: scale(1.4); opacity: 0.8; box-shadow: 0 0 0 8px rgba(0, 240, 118, 0); }
+  100% { transform: scale(1); opacity: 0.5; box-shadow: 0 0 0 0 rgba(0, 240, 118, 0); }
+}
+
+.panel-body {
+  padding: 14px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* ==========================================================================
+   Order Entry Panel
+   ========================================================================== */
+
+.toggle-group {
+  display: flex;
+  background: var(--bg-surface);
+  border-radius: 6px;
+  padding: 2px;
+  margin-bottom: 12px;
+  gap: 2px;
+}
+
+.btn-toggle {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-toggle.active {
+  background: var(--bg-panel);
+  color: var(--text-primary);
+}
+
+.btn-toggle.active-buy {
+  background: var(--color-buy);
+  color: #0b0e14;
+}
+
+.btn-toggle.active-sell {
+  background: var(--color-sell);
+  color: #fff;
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.input-with-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.input-with-controls input {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 10px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-with-controls input:focus {
+  border-color: var(--color-accent);
+}
+
+.input-with-controls input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-step {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.btn-step:hover {
+  background: var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.quick-presets {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.btn-preset {
+  flex: 1;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 3px 0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-preset:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+}
+
+.order-summary {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.summary-row span:last-child {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-buy {
+  background: var(--color-buy);
+  color: #0b0e14;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-glow-buy);
+  transition: all 0.2s;
+}
+
+.btn-buy:hover {
+  background: var(--color-buy-hover);
+  transform: translateY(-1px);
+}
+
+.btn-sell {
+  background: var(--color-sell);
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-glow-sell);
+  transition: all 0.2s;
+}
+
+.btn-sell:hover {
+  background: var(--color-sell-hover);
+  transform: translateY(-1px);
+}
+
+/* Quick Demo Box */
+.demo-box {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.demo-box-label {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+/* Status Banner */
+.status-banner {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 6px;
+  border-left: 3px solid var(--color-accent);
+  background: var(--bg-surface);
+  animation: fade-in 0.3s ease-out;
+}
+
+.status-banner.success {
+  border-left-color: var(--color-buy);
+  background: var(--color-buy-bg);
+}
+
+.status-banner.error {
+  border-left-color: var(--color-sell);
+  background: var(--color-sell-bg);
+}
+
+.status-banner-title {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.status-banner-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   Data Tables (My Orders & Trade Tape)
+   ========================================================================== */
+
+.table-container {
+  padding: 0;
+  position: relative;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.data-table thead {
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary);
+  z-index: 2;
+}
+
+.data-table th {
+  padding: 8px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 8px 10px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  border-bottom: 1px solid rgba(36, 45, 64, 0.5);
+  white-space: nowrap;
+}
+
+.data-table tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.empty-row td {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+}
+
+/* Badges */
+.badge-side {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.badge-buy {
+  background: var(--color-buy-bg);
+  color: var(--color-buy);
+}
+
+.badge-sell {
+  background: var(--color-sell-bg);
+  color: var(--color-sell);
+}
+
+.badge-status {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.status-queued {
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+}
+
+.status-partial {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.status-filled {
+  background: var(--color-buy-bg);
+  color: var(--color-buy);
+}
+
+.status-cancelled {
+  background: rgba(123, 135, 156, 0.15);
+  color: var(--color-cancelled);
+}
+
+.status-rejected {
+  background: var(--color-sell-bg);
+  color: var(--color-sell);
+}
+
+/* Table Flash Animations */
+.row-flash-buy {
+  animation: flash-green 1s ease-out;
+}
+
+.row-flash-sell {
+  animation: flash-red 1s ease-out;
+}
+
+@keyframes flash-green {
+  0% { background-color: rgba(0, 240, 118, 0.35); }
+  100% { background-color: transparent; }
+}
+
+@keyframes flash-red {
+  0% { background-color: rgba(255, 59, 87, 0.35); }
+  100% { background-color: transparent; }
+}
+
+/* Buttons */
+.btn {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: var(--color-accent);
+  color: #0b0e14;
+  box-shadow: var(--shadow-glow-cyan);
+}
+
+.btn-primary:hover {
+  background: #33ebff;
+  transform: translateY(-2px);
+}
+
+.btn-primary-large {
+  font-size: 15px;
+  font-weight: 700;
+  padding: 14px 32px;
+  border-radius: 8px;
+}
+
+.btn-large {
+  font-size: 15px;
+  font-weight: 700;
+  padding: 14px 32px;
+  border-radius: 8px;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.btn-outline:hover {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+  background: var(--bg-surface);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 11px;
+}
+
+.btn-xs {
+  padding: 3px 8px;
+  font-size: 10px;
+}
+
+.btn-link {
+  background: transparent;
+  color: var(--color-accent);
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.btn-link:hover {
+  color: #fff;
+}
+
+.btn-cancel {
+  background: rgba(255, 59, 87, 0.15);
+  color: var(--color-sell);
+  border: 1px solid rgba(255, 59, 87, 0.3);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+  background: var(--color-sell);
+  color: #fff;
+}
+
+.btn-cancel:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+/* Header Tools & Checkbox */
+.header-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toggle-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.toggle-checkbox input {
+  accent-color: var(--color-accent);
+}
+

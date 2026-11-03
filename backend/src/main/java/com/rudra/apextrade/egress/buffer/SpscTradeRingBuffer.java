@@ -56,20 +56,19 @@ public class SpscTradeRingBuffer extends SpscPad2 {
         }
     }
 
-    public boolean offer(long tradeId, long makerOrderId, long takerOrderId,
-                         Side takerSide, long price, long quantity, long timestamp) {
+    public void offer(long tradeId, long makerOrderId, long takerOrderId,
+                      Side takerSide, long price, long quantity, long timestamp) {
         final long currentProducer = (long) PRODUCER_VH.get(this);
         final long currentConsumer = (long) CONSUMER_VH.getAcquire(this);
 
         if (currentProducer - currentConsumer >= capacity) {
-            return false;
+            return;
         }
 
         int index = (int) (currentProducer & mask);
         buffer[index].set(tradeId, makerOrderId, takerOrderId, takerSide, price, quantity, timestamp);
 
         PRODUCER_VH.setRelease(this, currentProducer + 1);
-        return true;
     }
 
     public TradeEvent peek() {
