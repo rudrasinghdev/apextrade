@@ -42,15 +42,6 @@
         </div>
 
         <div class="welcome-actions">
-          <div class="gateway-config-box" id="welcome-gateway-box">
-            <label for="welcome-gateway-input" class="gateway-label">RENDER BACKEND GATEWAY URL</label>
-            <div class="gateway-input-group">
-              <input type="text" id="welcome-gateway-input" placeholder="apextrade-core-backend.onrender.com" class="font-mono" autocomplete="off" spellcheck="false">
-              <button type="button" id="btn-test-gateway" class="btn btn-outline btn-sm">Test Connection</button>
-            </div>
-            <div id="gateway-test-status" class="gateway-status-text"></div>
-          </div>
-
           <button id="btn-enter-terminal" class="btn btn-primary btn-large">
             <span>Enter Trading Terminal</span>
             <svg class="icon-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -112,10 +103,6 @@
         </div>
 
         <div class="nav-right">
-          <div class="user-session-chip" title="ApexTrade Backend Gateway Host (Leave empty for auto-detect)">
-            <span class="user-label">GATEWAY:</span>
-            <input type="text" id="gateway-host-input" placeholder="auto" style="width: 130px;">
-          </div>
           <div class="user-session-chip">
             <span class="user-label">USER ID:</span>
             <input type="number" id="trader-user-id" min="1" value="101" title="Trading User ID">

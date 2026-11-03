@@ -6,50 +6,20 @@
 (() => {
   'use strict';
 
-  // --- Configuration & Dynamic Gateway ---
+  // --- Configuration ---
   const DEFAULT_PORT = 8080;
-  const DEFAULT_PROD_GATEWAY = 'apextrade-core-backend.onrender.com';
-  const GATEWAY_STORAGE_KEY = 'apextrade_gateway_host';
+  const PROD_GATEWAY = 'apextrade-core-backend.onrender.com';
 
-  function resolveGatewayHost() {
-    const saved = localStorage.getItem(GATEWAY_STORAGE_KEY);
-    if (saved && saved.trim()) {
-      return saved.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
-    }
-    // If running on Vercel or remote web hosting, default to production Render backend
-    if (window.location.hostname.includes('vercel.app') || (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
-      return DEFAULT_PROD_GATEWAY;
-    }
-    if (window.location.protocol.startsWith('http')) {
-      return window.location.host;
-    }
-    return `localhost:${DEFAULT_PORT}`;
-  }
-
-  let API_HOST = resolveGatewayHost();
-
-  function getRestBase() {
-    if (!API_HOST) return '';
-    const isHttps = window.location.protocol === 'https:' || API_HOST.includes('onrender.com');
-    const proto = isHttps ? 'https:' : (window.location.protocol.startsWith('http') ? window.location.protocol : 'http:');
-    return `${proto}//${API_HOST}`;
-  }
-
-  function getWsUrl() {
-    if (!API_HOST) return '';
-    const isWss = window.location.protocol === 'https:' || API_HOST.includes('onrender.com');
-    const proto = isWss ? 'wss:' : 'ws:';
-    return `${proto}//${API_HOST}/ws/trades`;
-  }
-
-  let REST_BASE_URL = getRestBase();
-  let WS_URL = getWsUrl();
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const API_HOST = isLocal ? `localhost:${DEFAULT_PORT}` : PROD_GATEWAY;
+  const REST_BASE_URL = isLocal ? `http://${API_HOST}` : `https://${API_HOST}`;
+  const WS_URL = isLocal ? `ws://${API_HOST}/ws/trades` : `wss://${API_HOST}/ws/trades`;
 
   function updateFooterUrls() {
     const footerRest = document.getElementById('footer-rest-url');
     const footerWs = document.getElementById('footer-ws-url');
-    if (footerRest) footerRest.textContent = REST_BASE_URL ? `${REST_BASE_URL}/api/v1/orders` : 'Not Set (Enter Render URL)';
-    if (footerWs) footerWs.textContent = WS_URL ? WS_URL : 'Not Set (Enter Render URL)';
+    if (footerRest) footerRest.textContent = `${REST_BASE_URL}/api/v1/orders`;
+    if (footerWs) footerWs.textContent = WS_URL;
   }
   updateFooterUrls();
 
@@ -136,81 +106,6 @@
 
   nav.btnEnter.addEventListener('click', () => showView('terminal'));
   nav.btnExit.addEventListener('click', () => showView('welcome'));
-
-  const welcomeGatewayInput = document.getElementById('welcome-gateway-input');
-  const terminalGatewayInput = document.getElementById('gateway-host-input');
-  const btnTestGateway = document.getElementById('btn-test-gateway');
-  const testStatus = document.getElementById('gateway-test-status');
-
-  function syncGatewayInputs(val) {
-    if (welcomeGatewayInput) welcomeGatewayInput.value = val;
-    if (terminalGatewayInput) terminalGatewayInput.value = val;
-  }
-
-  const initialHost = localStorage.getItem(GATEWAY_STORAGE_KEY) || API_HOST;
-  syncGatewayInputs(initialHost);
-
-  function applyGatewayChange(rawVal) {
-    const clean = (rawVal || '').trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
-    if (clean) {
-      localStorage.setItem(GATEWAY_STORAGE_KEY, clean);
-    } else {
-      localStorage.removeItem(GATEWAY_STORAGE_KEY);
-    }
-    API_HOST = resolveGatewayHost();
-    REST_BASE_URL = getRestBase();
-    WS_URL = getWsUrl();
-    updateFooterUrls();
-    syncGatewayInputs(clean || API_HOST);
-    if (socket) {
-      socket.close();
-      socket = null;
-    }
-    if (!views.terminal.classList.contains('hidden')) {
-      connectWebSocket();
-    }
-  }
-
-  if (welcomeGatewayInput) {
-    welcomeGatewayInput.addEventListener('change', () => applyGatewayChange(welcomeGatewayInput.value));
-  }
-  if (terminalGatewayInput) {
-    terminalGatewayInput.addEventListener('change', () => applyGatewayChange(terminalGatewayInput.value));
-  }
-
-  if (btnTestGateway) {
-    btnTestGateway.addEventListener('click', async () => {
-      const raw = welcomeGatewayInput ? welcomeGatewayInput.value : '';
-      const host = raw.trim().replace(/^https?:\/\//, '').replace(/\/$/, '') || API_HOST;
-
-      if (!host) {
-        testStatus.className = 'gateway-status-text error';
-        testStatus.textContent = 'Please enter your Render host (e.g. apextrade-core.onrender.com)';
-        return;
-      }
-
-      testStatus.className = 'gateway-status-text loading';
-      testStatus.textContent = `Connecting to ${host}... (Free tier Render may take ~50s to wake up)`;
-
-      const isHttps = window.location.protocol === 'https:' || host.includes('onrender.com');
-      const testUrl = `${isHttps ? 'https:' : 'http:'}//${host}/api/v1/orders/health`;
-
-      try {
-        const res = await fetch(testUrl, { method: 'GET' });
-        if (res.ok) {
-          testStatus.className = 'gateway-status-text success';
-          testStatus.textContent = '✓ Backend Online! Connection verified.';
-          applyGatewayChange(host);
-        } else {
-          testStatus.className = 'gateway-status-text error';
-          testStatus.textContent = `Server responded with HTTP ${res.status}. Check Render logs.`;
-        }
-      } catch (err) {
-        testStatus.className = 'gateway-status-text error';
-        testStatus.textContent = '✗ Connection failed. If Render was asleep, wait 30 seconds and test again.';
-      }
-    });
-  }
 
   // --- WebSocket Connection ---
   function connectWebSocket() {

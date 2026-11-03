@@ -201,69 +201,8 @@ body {
 
 .welcome-actions {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
+  justify-content: center;
   margin-bottom: 2.5rem;
-}
-
-.gateway-config-box {
-  width: 100%;
-  max-width: 480px;
-  background: var(--bg-panel);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  padding: 14px 18px;
-  text-align: left;
-}
-
-.gateway-label {
-  display: block;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: var(--color-accent);
-  margin-bottom: 8px;
-}
-
-.gateway-input-group {
-  display: flex;
-  gap: 8px;
-}
-
-.gateway-input-group input {
-  flex: 1;
-  background: var(--bg-input);
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  color: #fff;
-  font-size: 13px;
-  padding: 8px 12px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.gateway-input-group input:focus {
-  border-color: var(--color-accent);
-}
-
-.gateway-status-text {
-  margin-top: 8px;
-  font-size: 11px;
-  font-family: var(--font-mono);
-  min-height: 18px;
-}
-
-.gateway-status-text.success {
-  color: var(--color-buy);
-}
-
-.gateway-status-text.error {
-  color: var(--color-sell);
-}
-
-.gateway-status-text.loading {
-  color: var(--color-warning);
 }
 
 .welcome-footer {
