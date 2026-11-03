@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: apextrade-core
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /api/v1/orders/health
+    envVars:
+      - key: PORT
+        value: 10000

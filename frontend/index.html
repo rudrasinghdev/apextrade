@@ -53,11 +53,11 @@
         <div class="welcome-footer">
           <div class="status-indicator">
             <span class="status-dot ping-alive"></span>
-            <span>REST Gateway: <code class="code-pill">http://localhost:8080/api/v1/orders</code></span>
+            <span>REST Gateway: <code class="code-pill" id="footer-rest-url">/api/v1/orders</code></span>
           </div>
           <div class="status-indicator">
             <span class="status-dot ping-alive"></span>
-            <span>Trade Feed: <code class="code-pill">ws://localhost:8080/ws/trades</code></span>
+            <span>Trade Feed: <code class="code-pill" id="footer-ws-url">/ws/trades</code></span>
           </div>
         </div>
       </div>
@@ -103,6 +103,10 @@
         </div>
 
         <div class="nav-right">
+          <div class="user-session-chip" title="ApexTrade Backend Gateway Host (Leave empty for auto-detect)">
+            <span class="user-label">GATEWAY:</span>
+            <input type="text" id="gateway-host-input" placeholder="auto" style="width: 130px;">
+          </div>
           <div class="user-session-chip">
             <span class="user-label">USER ID:</span>
             <input type="number" id="trader-user-id" min="1" value="101" title="Trading User ID">

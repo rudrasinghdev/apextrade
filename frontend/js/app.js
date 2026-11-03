@@ -6,12 +6,43 @@
 (() => {
   'use strict';
 
-  // --- Configuration ---
+  // --- Configuration & Dynamic Gateway ---
   const DEFAULT_PORT = 8080;
-  const isHttp = window.location.protocol.startsWith('http');
-  const API_HOST = isHttp ? window.location.host : `localhost:${DEFAULT_PORT}`;
-  const REST_BASE_URL = isHttp ? `${window.location.protocol}//${API_HOST}` : `http://localhost:${DEFAULT_PORT}`;
-  const WS_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${API_HOST}/ws/trades`;
+  const GATEWAY_STORAGE_KEY = 'apextrade_gateway_host';
+
+  function resolveGatewayHost() {
+    const saved = localStorage.getItem(GATEWAY_STORAGE_KEY);
+    if (saved && saved.trim()) {
+      return saved.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
+    }
+    if (window.location.protocol.startsWith('http')) {
+      return window.location.host;
+    }
+    return `localhost:${DEFAULT_PORT}`;
+  }
+
+  let API_HOST = resolveGatewayHost();
+  function getRestBase() {
+    const isHttps = window.location.protocol === 'https:' || API_HOST.includes('onrender.com');
+    const proto = isHttps ? 'https:' : (window.location.protocol.startsWith('http') ? window.location.protocol : 'http:');
+    return `${proto}//${API_HOST}`;
+  }
+  function getWsUrl() {
+    const isWss = window.location.protocol === 'https:' || API_HOST.includes('onrender.com');
+    const proto = isWss ? 'wss:' : 'ws:';
+    return `${proto}//${API_HOST}/ws/trades`;
+  }
+
+  let REST_BASE_URL = getRestBase();
+  let WS_URL = getWsUrl();
+
+  function updateFooterUrls() {
+    const footerRest = document.getElementById('footer-rest-url');
+    const footerWs = document.getElementById('footer-ws-url');
+    if (footerRest) footerRest.textContent = `${REST_BASE_URL}/api/v1/orders`;
+    if (footerWs) footerWs.textContent = WS_URL;
+  }
+  updateFooterUrls();
 
   // --- State ---
   let socket = null;
@@ -96,6 +127,28 @@
 
   nav.btnEnter.addEventListener('click', () => showView('terminal'));
   nav.btnExit.addEventListener('click', () => showView('welcome'));
+
+  const gatewayInput = document.getElementById('gateway-host-input');
+  if (gatewayInput) {
+    gatewayInput.value = localStorage.getItem(GATEWAY_STORAGE_KEY) || '';
+    gatewayInput.addEventListener('change', () => {
+      const val = gatewayInput.value.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
+      if (val) {
+        localStorage.setItem(GATEWAY_STORAGE_KEY, val);
+      } else {
+        localStorage.removeItem(GATEWAY_STORAGE_KEY);
+      }
+      API_HOST = resolveGatewayHost();
+      REST_BASE_URL = getRestBase();
+      WS_URL = getWsUrl();
+      updateFooterUrls();
+      if (socket) {
+        socket.close();
+        socket = null;
+      }
+      connectWebSocket();
+    });
+  }
 
   // --- WebSocket Connection ---
   function connectWebSocket() {
