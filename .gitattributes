@@ -1,0 +1,15 @@
+# ==============================================================================
+# ApexTrade Core - Central Repository Git Attributes
+# ==============================================================================
+
+# Auto-detect text files and normalize line endings to LF in Git
+* text=auto
+
+# Ensure Unix shell scripts stay LF (crucial for Docker & Linux builds)
+*.sh text eol=lf
+**/mvnw text eol=lf
+
+# Windows batch/cmd scripts stay CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
+

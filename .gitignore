@@ -1,6 +1,35 @@
-# Root .gitignore for apextrade-core
-.vscode/
-.idea/
-target/
-*.log
+# ==============================================================================
+# ApexTrade Core - Central Repository Git Ignore Rules
+# ==============================================================================
 
+# Compiled & Build Artifacts (applies to all modules)
+target/
+build/
+*.jar
+*.war
+*.original
+out/
+dist/
+
+# Maven Wrapper binaries (preserve scripts, ignore binary jar)
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE & Editor Configurations
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+.springBeans
+.sts4-cache
+
+# OS Scratch & Temporary Files
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.log
+HELP.md
