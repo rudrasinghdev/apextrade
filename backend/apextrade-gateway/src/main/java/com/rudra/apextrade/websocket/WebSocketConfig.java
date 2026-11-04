@@ -1,4 +1,4 @@
-package com.rudra.apextrade.gateway.websocket;
+package com.rudra.apextrade.websocket;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;

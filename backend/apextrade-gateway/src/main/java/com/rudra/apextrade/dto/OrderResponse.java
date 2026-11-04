@@ -1,4 +1,4 @@
-package com.rudra.apextrade.gateway.dto;
+package com.rudra.apextrade.dto;
 
 public record OrderResponse(
         String status,

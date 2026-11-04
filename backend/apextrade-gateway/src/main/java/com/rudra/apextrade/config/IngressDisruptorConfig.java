@@ -1,4 +1,4 @@
-package com.rudra.apextrade.gateway.config;
+package com.rudra.apextrade.config;
 
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.YieldingWaitStrategy;

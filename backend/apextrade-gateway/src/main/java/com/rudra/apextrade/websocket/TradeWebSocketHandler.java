@@ -1,4 +1,4 @@
-package com.rudra.apextrade.gateway.websocket;
+package com.rudra.apextrade.websocket;
 
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Component;

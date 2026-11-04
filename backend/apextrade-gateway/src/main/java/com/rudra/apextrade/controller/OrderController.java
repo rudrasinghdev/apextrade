@@ -1,9 +1,9 @@
-package com.rudra.apextrade.gateway.controller;
+package com.rudra.apextrade.controller;
 
 import com.rudra.apextrade.common.OrderType;
-import com.rudra.apextrade.gateway.dto.OrderRequest;
-import com.rudra.apextrade.gateway.dto.OrderResponse;
-import com.rudra.apextrade.gateway.service.OrderService;
+import com.rudra.apextrade.dto.OrderRequest;
+import com.rudra.apextrade.dto.OrderResponse;
+import com.rudra.apextrade.service.OrderService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

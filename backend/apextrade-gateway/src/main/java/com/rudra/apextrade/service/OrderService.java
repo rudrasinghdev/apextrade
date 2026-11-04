@@ -1,8 +1,8 @@
-package com.rudra.apextrade.gateway.service;
+package com.rudra.apextrade.service;
 
 import com.rudra.apextrade.ingress.publisher.OrderCommandPublisher;
-import com.rudra.apextrade.gateway.dto.OrderRequest;
-import com.rudra.apextrade.gateway.dto.OrderResponse;
+import com.rudra.apextrade.dto.OrderRequest;
+import com.rudra.apextrade.dto.OrderResponse;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.atomic.AtomicLong;

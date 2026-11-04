@@ -1,4 +1,4 @@
-package com.rudra.apextrade.gateway.controller;
+package com.rudra.apextrade.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;

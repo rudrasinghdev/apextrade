@@ -1,9 +1,9 @@
-package com.rudra.apextrade.gateway.config;
+package com.rudra.apextrade.config;
 
 import com.rudra.apextrade.egress.buffer.SpscTradeRingBuffer;
 import com.rudra.apextrade.egress.handler.TradeEgressHandler;
 import com.rudra.apextrade.egress.publisher.TradeEgressPublisher;
-import com.rudra.apextrade.gateway.websocket.TradeWebSocketHandler;
+import com.rudra.apextrade.websocket.TradeWebSocketHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

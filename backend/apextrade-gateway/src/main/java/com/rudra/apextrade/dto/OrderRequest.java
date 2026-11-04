@@ -1,4 +1,4 @@
-package com.rudra.apextrade.gateway.dto;
+package com.rudra.apextrade.dto;
 
 import com.rudra.apextrade.common.OrderType;
 import com.rudra.apextrade.common.Side;
