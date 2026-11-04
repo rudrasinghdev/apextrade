@@ -32,14 +32,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/**",
-                                "/h2-console/**",
-                                "/api/health",
-                                "/ws/**",
-                                "/",
-                                "/index.html",
-                                "/css/**",
-                                "/js/**",
-                                "/favicon.ico"
+                                "/api/health"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
