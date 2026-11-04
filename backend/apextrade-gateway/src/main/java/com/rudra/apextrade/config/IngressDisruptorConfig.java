@@ -13,11 +13,6 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.concurrent.ThreadFactory;
 
-/**
- * Gateway-native Ingress Disruptor configuration.
- * Decoupled completely from apextrade-engine.
- * Buffers concurrent web orders and streams them sequentially to S2 via GatewayOrderCommandHandler.
- */
 @Configuration
 public class IngressDisruptorConfig {
 

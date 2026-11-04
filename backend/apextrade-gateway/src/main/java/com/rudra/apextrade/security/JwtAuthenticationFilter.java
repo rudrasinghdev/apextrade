@@ -14,10 +14,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-/**
- * Stateless once-per-request filter.
- * Intercepts inbound HTTP requests, verifies JWT in RAM, and establishes authenticated security context.
- */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 

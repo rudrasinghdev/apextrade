@@ -1,10 +1,10 @@
 package com.rudra.apextrade.dto;
 
-public record AuthResponse(
-        String token,
+public record RegisterResponse(
         long userId,
         String username,
-        String email
+        String email,
+        String token
 ) {
 }
 

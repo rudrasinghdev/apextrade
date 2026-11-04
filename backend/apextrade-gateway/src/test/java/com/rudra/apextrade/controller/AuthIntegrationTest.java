@@ -85,8 +85,8 @@ class AuthIntegrationTest {
                         .content(objectMapper.writeValueAsString(badLoginReq)))
                 .andExpect(status().isUnauthorized());
 
-        // 5. Access protected /me endpoint with Bearer token
-        MvcResult meResult = mockMvc.perform(get("/api/auth/me")
+        // 5. Access protected /api/users/me endpoint with Bearer token
+        MvcResult meResult = mockMvc.perform(get("/api/users/me")
                         .header("Authorization", "Bearer " + loginToken))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -95,8 +95,8 @@ class AuthIntegrationTest {
         assertEquals(username, meJson.get("username").asText());
         assertEquals(email, meJson.get("email").asText());
 
-        // 6. Access protected /me endpoint without token rejected with HTTP 401 Unauthorized
-        mockMvc.perform(get("/api/auth/me"))
+        // 6. Access protected /api/users/me endpoint without token rejected with HTTP 401 Unauthorized
+        mockMvc.perform(get("/api/users/me"))
                 .andExpect(status().isUnauthorized());
     }
 }

@@ -12,10 +12,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HexFormat;
 
-/**
- * Ultra-fast stateless JWT token generator and validator.
- * Employs symmetric HMAC-SHA256 for sub-microsecond cryptographic signature checks.
- */
 @Component
 public class JwtTokenProvider {
 
