@@ -12,6 +12,11 @@
     <artifactId>apextrade-gateway</artifactId>
     <packaging>jar</packaging>
 
+    <properties>
+        <!-- Patched embedded Tomcat 11 for Gateway web server -->
+        <tomcat.version>11.0.27</tomcat.version>
+    </properties>
+
     <dependencies>
         <!-- Shared wire formats and models -->
         <dependency>
@@ -33,12 +38,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-websocket</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
         </dependency>
 
         <!-- Spring Boot Test isolated only to gateway -->

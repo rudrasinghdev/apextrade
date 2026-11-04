@@ -24,8 +24,6 @@
     <properties>
         <java.version>25</java.version>
         <disruptor.version>4.0.0</disruptor.version>
-        <!-- Patched embedded Tomcat 11 to resolve all CVE vulnerability alerts -->
-        <tomcat.version>11.0.27</tomcat.version>
     </properties>
 
     <dependencyManagement>
@@ -74,20 +72,22 @@
     </dependencies>
 
     <build>
-        <plugins>
-            <!-- Clean Java 25 compiler configuration with Lombok processor -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                        </path>
-                    </annotationProcessorPaths>
-                </configuration>
-            </plugin>
-        </plugins>
+        <pluginManagement>
+            <plugins>
+                <!-- Clean Java 25 compiler configuration with Lombok processor -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
 </project>

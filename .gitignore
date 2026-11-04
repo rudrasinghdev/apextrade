@@ -1,0 +1,6 @@
+# Root .gitignore for apextrade-core
+.vscode/
+.idea/
+target/
+*.log
+
