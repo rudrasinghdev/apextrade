@@ -10,6 +10,5 @@
     </parent>
 
     <artifactId>apextrade-common</artifactId>
-    <packaging>jar</packaging>
 
 </project>

@@ -4,51 +4,42 @@ import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.YieldingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
-import com.rudra.apextrade.core.book.OrderBook;
-import com.rudra.apextrade.core.engine.MatchingEngine;
-import com.rudra.apextrade.core.order.OrderPool;
-import com.rudra.apextrade.egress.publisher.TradeEgressPublisher;
 import com.rudra.apextrade.ingress.event.OrderCommandEvent;
 import com.rudra.apextrade.ingress.event.OrderCommandEventFactory;
-import com.rudra.apextrade.ingress.handler.OrderCommandHandler;
+import com.rudra.apextrade.ingress.handler.GatewayOrderCommandHandler;
 import com.rudra.apextrade.ingress.publisher.OrderCommandPublisher;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.concurrent.ThreadFactory;
 
+/**
+ * Gateway-native Ingress Disruptor configuration.
+ * Decoupled completely from apextrade-engine.
+ * Buffers concurrent web orders and streams them sequentially to S2 via GatewayOrderCommandHandler.
+ */
 @Configuration
 public class IngressDisruptorConfig {
 
     private static final int BUFFER_SIZE = 65536;
 
     @Bean
-    public OrderPool orderPool() {
-        return new OrderPool();
+    public OrderCommandEventFactory orderCommandEventFactory() {
+        return new OrderCommandEventFactory();
     }
 
     @Bean
-    public OrderBook orderBook(OrderPool orderPool) {
-        return new OrderBook("BTC/USDT", orderPool);
-    }
-
-    @Bean
-    public MatchingEngine matchingEngine(OrderBook orderBook,
-                                         @Value("${apextrade.engine.listing-price:50000}") long listingPrice,
-                                         TradeEgressPublisher tradeEgressPublisher) {
-        return new MatchingEngine(orderBook, listingPrice, tradeEgressPublisher);
-    }
-
-    @Bean
-    public OrderCommandHandler orderCommandHandler(MatchingEngine matchingEngine) {
-        return new OrderCommandHandler(matchingEngine);
+    public GatewayOrderCommandHandler gatewayOrderCommandHandler() {
+        return new GatewayOrderCommandHandler();
     }
 
     @Bean(destroyMethod = "shutdown")
-    public Disruptor<OrderCommandEvent> disruptor(OrderCommandEventFactory factory, OrderCommandHandler orderCommandHandler) {
+    public Disruptor<OrderCommandEvent> disruptor(
+            OrderCommandEventFactory factory,
+            GatewayOrderCommandHandler handler
+    ) {
         ThreadFactory threadFactory = runnable -> {
-            Thread thread = new Thread(runnable, "matching-core-thread");
+            Thread thread = new Thread(runnable, "gateway-socket-thread");
             thread.setDaemon(true);
             return thread;
         };
@@ -61,15 +52,10 @@ public class IngressDisruptorConfig {
                 new YieldingWaitStrategy()
         );
 
-        disruptor.handleEventsWith(orderCommandHandler);
+        disruptor.handleEventsWith(handler);
         disruptor.start();
 
         return disruptor;
-    }
-
-    @Bean
-    public OrderCommandEventFactory orderCommandEventFactory() {
-        return new OrderCommandEventFactory();
     }
 
     @Bean
@@ -82,4 +68,3 @@ public class IngressDisruptorConfig {
         return new OrderCommandPublisher(ringBuffer);
     }
 }
-

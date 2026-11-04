@@ -24,6 +24,7 @@
     <properties>
         <java.version>25</java.version>
         <disruptor.version>4.0.0</disruptor.version>
+        <jjwt.version>0.12.6</jjwt.version>
     </properties>
 
     <dependencyManagement>
@@ -35,18 +36,30 @@
                 <version>${project.version}</version>
             </dependency>
 
-            <!-- ApexTrade Matching Engine Core -->
-            <dependency>
-                <groupId>com.rudra</groupId>
-                <artifactId>apextrade-engine</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
             <!-- LMAX Disruptor for high-speed matching ring buffer -->
             <dependency>
                 <groupId>com.lmax</groupId>
                 <artifactId>disruptor</artifactId>
                 <version>${disruptor.version}</version>
+            </dependency>
+
+            <!-- JJWT -->
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-api</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>${jjwt.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-jackson</artifactId>
+                <version>${jjwt.version}</version>
+                <scope>runtime</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
