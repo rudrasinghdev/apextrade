@@ -1,11 +1,9 @@
 package com.rudra.apextrade.exception;
 
+import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
-/**
- * Base abstract exception for all ApexTrade domain and trading errors.
- * Encapsulates the corresponding HTTP status and machine-readable error code.
- */
+@Getter
 public abstract class ApexTradeException extends RuntimeException {
 
     private final HttpStatus status;
@@ -17,17 +15,4 @@ public abstract class ApexTradeException extends RuntimeException {
         this.errorCode = errorCode;
     }
 
-    protected ApexTradeException(String message, HttpStatus status, String errorCode, Throwable cause) {
-        super(message, cause);
-        this.status = status;
-        this.errorCode = errorCode;
-    }
-
-    public HttpStatus getStatus() {
-        return status;
-    }
-
-    public String getErrorCode() {
-        return errorCode;
-    }
 }

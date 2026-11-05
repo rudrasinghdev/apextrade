@@ -1,6 +1,7 @@
 package com.rudra.apextrade.service;
 
 import com.rudra.apextrade.dto.UserProfileResponse;
+import com.rudra.apextrade.exception.UserNotFoundException;
 import com.rudra.apextrade.model.User;
 import com.rudra.apextrade.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -41,7 +42,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserProfileResponse getProfile(long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new com.rudra.apextrade.exception.UserNotFoundException("User not found: " + userId));
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + userId));
 
         return new UserProfileResponse(
                 user.getUserId(),

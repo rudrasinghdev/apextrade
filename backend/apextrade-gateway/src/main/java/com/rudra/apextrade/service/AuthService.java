@@ -4,6 +4,7 @@ import com.rudra.apextrade.dto.LoginRequest;
 import com.rudra.apextrade.dto.LoginResponse;
 import com.rudra.apextrade.dto.RegisterRequest;
 import com.rudra.apextrade.dto.RegisterResponse;
+import com.rudra.apextrade.exception.UserAlreadyExistsException;
 import com.rudra.apextrade.model.User;
 import com.rudra.apextrade.security.JwtService;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -38,7 +39,7 @@ public class AuthService {
         String email = req.email().trim().toLowerCase();
 
         if (userService.existsByEmail(email)) {
-            throw new com.rudra.apextrade.exception.UserAlreadyExistsException("Email is already registered");
+            throw new UserAlreadyExistsException("Email is already registered");
         }
 
         String passwordHash = passwordEncoder.encode(req.password());

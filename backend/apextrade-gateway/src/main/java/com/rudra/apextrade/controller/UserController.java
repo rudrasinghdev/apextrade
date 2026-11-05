@@ -23,10 +23,7 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<?> getMe(@AuthenticationPrincipal UserPrincipal principal) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthenticated"));
-        }
+    public ResponseEntity<UserProfileResponse> getMe(@AuthenticationPrincipal UserPrincipal principal) {
         UserProfileResponse profile = userService.getProfile(principal.userId());
         return ResponseEntity.ok(profile);
     }
