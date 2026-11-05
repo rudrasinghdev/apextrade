@@ -9,55 +9,129 @@
 <body class="theme-dark">
   <div id="app-container">
 
-    <!-- ==================== VIEW 1: WELCOME SCREEN ==================== -->
+    <!-- Global Top Health Bar -->
+    <div class="global-status-strip">
+      <div class="strip-left">
+        <span class="brand-micro">▲ APEXTRADE CORE v1.0</span>
+        <span class="strip-divider">|</span>
+        <span class="gateway-indicator" id="gateway-indicator">
+          <span class="status-dot dot-pending" id="gateway-dot"></span>
+          <span id="gateway-status-text">Checking Gateway (http://localhost:8080)...</span>
+        </span>
+      </div>
+      <div class="strip-right">
+        <span class="pill-spec">INGRESS: LMAX DISRUPTOR</span>
+        <span class="pill-spec">ZERO-GC DIRECT BUFFER</span>
+      </div>
+    </div>
+
+    <!-- ==================== VIEW 1: AUTH GATE & LAUNCHPAD ==================== -->
     <section id="welcome-view" class="view active">
       <div class="welcome-card">
         <div class="welcome-header">
-          <span class="badge-accent">APEXTRADE CORE v1.0</span>
+          <span class="badge-accent">GATEWAY INGRESS PORTAL</span>
           <h1 class="welcome-title">ApexTrade Core</h1>
-          <p class="welcome-subtitle">Ultra-Low Latency Order Matching Engine & Gateway</p>
+          <p class="welcome-subtitle">Ultra-Low Latency Order Ingress & Gateway Risk Subsystem</p>
         </div>
 
-        <div class="specs-grid">
-          <div class="spec-card">
-            <div class="spec-label">INGRESS PIPELINE</div>
-            <div class="spec-value">LMAX Disruptor</div>
-            <div class="spec-detail">Zero-GC, 65k ring buffer, mechanical sympathy</div>
+        <!-- AUTH BOX: Shown when user is NOT logged in -->
+        <div id="auth-container" class="auth-box">
+          <div class="auth-tabs" role="tablist">
+            <button type="button" class="auth-tab active" id="tab-login" data-tab="login">Sign In</button>
+            <button type="button" class="auth-tab" id="tab-register" data-tab="register">Create Account</button>
           </div>
-          <div class="spec-card">
-            <div class="spec-label">MATCHING ENGINE</div>
-            <div class="spec-value">Deterministic Core</div>
-            <div class="spec-detail">In-memory B-Tree Price-Time Priority</div>
-          </div>
-          <div class="spec-card">
-            <div class="spec-label">EGRESS PIPELINE</div>
-            <div class="spec-value">SPSC Ring Buffer</div>
-            <div class="spec-detail">5-layer cache padded, lock-free 2PC commit</div>
-          </div>
-          <div class="spec-card">
-            <div class="spec-label">STREAMING GATEWAY</div>
-            <div class="spec-value">WebSocket Stream</div>
-            <div class="spec-detail">Concurrent session broadcast (/ws/trades)</div>
-          </div>
+
+          <!-- Alert banner for errors & success -->
+          <div id="auth-alert" class="alert-banner hidden"></div>
+
+          <!-- LOGIN FORM -->
+          <form id="form-login" class="auth-form" novalidate>
+            <div class="form-group">
+              <label for="login-email">Email Address</label>
+              <input type="email" id="login-email" class="input-terminal" placeholder="trader@apextrade.com" required autocomplete="email">
+            </div>
+            <div class="form-group">
+              <label for="login-password">Password</label>
+              <input type="password" id="login-password" class="input-terminal" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+            <button type="submit" id="btn-login-submit" class="btn btn-primary btn-block">
+              <span>Sign In to Gateway</span>
+            </button>
+          </form>
+
+          <!-- REGISTER FORM -->
+          <form id="form-register" class="auth-form hidden" novalidate>
+            <div class="form-group">
+              <label for="reg-email">Email Address</label>
+              <input type="email" id="reg-email" class="input-terminal" placeholder="trader@apextrade.com" required autocomplete="email">
+            </div>
+            <div class="form-group">
+              <label for="reg-password">Password</label>
+              <input type="password" id="reg-password" class="input-terminal" placeholder="••••••••" required autocomplete="new-password">
+              <span class="input-hint">Requires at least 6 characters</span>
+            </div>
+            <button type="submit" id="btn-register-submit" class="btn btn-primary btn-block">
+              <span>Register Account</span>
+            </button>
+          </form>
         </div>
 
-        <div class="welcome-actions">
-          <button id="btn-enter-terminal" class="btn btn-primary btn-large">
-            <span>Enter Trading Terminal</span>
-            <svg class="icon-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </button>
+        <!-- LAUNCHPAD BOX: Shown once authenticated -->
+        <div id="launchpad-container" class="launchpad-box hidden">
+          <div class="launchpad-user-card">
+            <div class="user-avatar-badge">▲</div>
+            <div class="user-meta">
+              <div class="user-role-badge" id="lp-user-role">TRADER</div>
+              <h2 class="user-email-display" id="lp-user-email">trader@apextrade.com</h2>
+              <div class="user-submeta">
+                <span>User ID: <strong id="lp-user-id" class="font-mono">#--</strong></span>
+                <span class="meta-sep">•</span>
+                <span>Cold-Path Auth: <span class="text-success">Validated (RAM JWT)</span></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="launchpad-specs">
+            <div class="lp-spec-item">
+              <span class="lp-spec-label">SESSION TOKEN</span>
+              <span class="lp-spec-value font-mono text-cyan" id="lp-token-snippet">eyJhbGciOiJIUzI1Ni...</span>
+            </div>
+            <div class="lp-spec-item">
+              <span class="lp-spec-label">ORDER INGRESS</span>
+              <span class="lp-spec-value font-mono">Disruptor MPSC (65k RingBuffer)</span>
+            </div>
+            <div class="lp-spec-item">
+              <span class="lp-spec-label">WEBSOCKET STREAM</span>
+              <span class="lp-spec-value font-mono text-warning">Standby (Upgrade Ready)</span>
+            </div>
+          </div>
+
+          <div class="launchpad-actions">
+            <button id="btn-upgrade-terminal" class="btn btn-upgrade btn-large">
+              <span>⚡ Enter Trading Terminal (Upgrade to WebSocket Feed)</span>
+              <svg class="icon-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </button>
+            <button id="btn-logout" class="btn btn-outline btn-sm">Sign Out</button>
+          </div>
+          <p class="launchpad-notice">
+            Note: WebSocket live connection is held in standby mode for staging. Order placement will directly target the Ingress Disruptor.
+          </p>
         </div>
 
         <div class="welcome-footer">
           <div class="status-indicator">
             <span class="status-dot ping-alive"></span>
-            <span>REST Gateway: <code class="code-pill" id="footer-rest-url">/api/v1/orders</code></span>
+            <span>REST Ingress: <code class="code-pill">/api/v1/orders</code></span>
           </div>
           <div class="status-indicator">
             <span class="status-dot ping-alive"></span>
-            <span>Trade Feed: <code class="code-pill" id="footer-ws-url">/ws/trades</code></span>
+            <span>Auth API: <code class="code-pill">/api/auth/**</code></span>
+          </div>
+          <div class="status-indicator">
+            <span class="status-dot dot-standby"></span>
+            <span>Trade WebSocket: <code class="code-pill">/ws/trades (Standby)</code></span>
           </div>
         </div>
       </div>
@@ -73,8 +147,8 @@
             <span class="brand-text">APEXTRADE<span class="accent-text">.CORE</span></span>
           </div>
           <div class="ws-status-badge" id="ws-status">
-            <span class="status-dot" id="ws-dot"></span>
-            <span id="ws-status-text">CONNECTING...</span>
+            <span class="status-dot dot-standby" id="ws-dot"></span>
+            <span id="ws-status-text">WS FEED: STANDBY (Engine Staging)</span>
           </div>
         </div>
 
@@ -85,29 +159,23 @@
             <span class="market-val font-mono" id="instrument-name">BTC / USDT</span>
           </div>
           <div class="market-item">
-            <span class="market-label">LAST TRADED PRICE (LTP)</span>
-            <span class="market-val font-mono price-display" id="ltp-display">--</span>
+            <span class="market-label">REFERENCE PRICE</span>
+            <span class="market-val font-mono price-display" id="ltp-display">50,000.00</span>
           </div>
           <div class="market-item">
-            <span class="market-label">LAST QTY</span>
-            <span class="market-val font-mono" id="last-qty-display">--</span>
-          </div>
-          <div class="market-item">
-            <span class="market-label">SESSION VOLUME</span>
-            <span class="market-val font-mono" id="total-vol-display">0</span>
-          </div>
-          <div class="market-item">
-            <span class="market-label">TOTAL TRADES</span>
-            <span class="market-val font-mono" id="trade-count-display">0</span>
+            <span class="market-label">GATEWAY LATENCY</span>
+            <span class="market-val font-mono text-cyan" id="latency-display">&lt; 1 ms</span>
           </div>
         </div>
 
         <div class="nav-right">
           <div class="user-session-chip">
-            <span class="user-label">USER ID:</span>
-            <input type="number" id="trader-user-id" min="1" value="101" title="Trading User ID">
+            <span class="user-chip-dot"></span>
+            <span class="user-chip-email" id="terminal-user-email">trader@apex.trade</span>
+            <span class="user-chip-id font-mono" id="terminal-user-id">#--</span>
           </div>
-          <button id="btn-exit-terminal" class="btn btn-outline btn-sm" title="Return to Welcome Screen">Exit</button>
+          <button id="btn-back-launchpad" class="btn btn-outline btn-xs" title="Return to Session Overview">Launchpad</button>
+          <button id="btn-terminal-logout" class="btn btn-outline btn-xs text-sell" title="Log out">Sign Out</button>
         </div>
       </header>
 
@@ -141,13 +209,13 @@
                 <label for="input-price">Limit Price (USDT)</label>
                 <div class="input-with-controls">
                   <button type="button" class="btn-step" id="btn-price-minus">-10</button>
-                  <input type="number" id="input-price" class="font-mono" value="50000" min="1" step="any" required>
+                  <input type="number" id="input-price" class="font-mono input-terminal" value="50000" min="1" step="any" required>
                   <button type="button" class="btn-step" id="btn-price-plus">+10</button>
                 </div>
                 <div class="quick-presets">
                   <button type="button" class="btn-preset" data-price-offset="-50">-50</button>
                   <button type="button" class="btn-preset" data-price-offset="-10">-10</button>
-                  <button type="button" class="btn-preset" data-price-offset="0">LTP</button>
+                  <button type="button" class="btn-preset" data-price-offset="0">REF</button>
                   <button type="button" class="btn-preset" data-price-offset="10">+10</button>
                   <button type="button" class="btn-preset" data-price-offset="50">+50</button>
                 </div>
@@ -158,7 +226,7 @@
                 <label for="input-qty">Quantity</label>
                 <div class="input-with-controls">
                   <button type="button" class="btn-step" id="btn-qty-minus">-10</button>
-                  <input type="number" id="input-qty" class="font-mono" value="10" min="1" step="any" required>
+                  <input type="number" id="input-qty" class="font-mono input-terminal" value="10" min="1" step="any" required>
                   <button type="button" class="btn-step" id="btn-qty-plus">+10</button>
                 </div>
                 <div class="quick-presets">
@@ -185,9 +253,9 @@
 
             <!-- Quick Demo Helper -->
             <div class="demo-box">
-              <span class="demo-box-label">QUICK VERIFICATION</span>
-              <button type="button" id="btn-demo-cross" class="btn btn-outline btn-sm btn-block" title="Places BUY @ 50000 and SELL @ 50000 to instantly trigger an execution">
-                ⚡ Place Cross Pair (Match Test)
+              <span class="demo-box-label">INGRESS LOAD TEST</span>
+              <button type="button" id="btn-demo-cross" class="btn btn-outline btn-sm btn-block" title="Submits BUY and SELL orders consecutively">
+                ⚡ Fire Cross Test (Buy @ 50000 + Sell @ 50000)
               </button>
             </div>
 
@@ -208,7 +276,7 @@
               <h2>My Active Orders</h2>
               <span class="count-badge font-mono" id="my-orders-count">0</span>
             </div>
-            <button type="button" id="btn-clear-orders" class="btn btn-link btn-xs" title="Clear cancelled and fully filled orders">
+            <button type="button" id="btn-clear-orders" class="btn btn-link btn-xs" title="Clear cancelled orders from local cache">
               Clear Completed
             </button>
           </div>
@@ -223,50 +291,43 @@
                   <th>Type</th>
                   <th>Price</th>
                   <th>Qty</th>
-                  <th>Filled</th>
                   <th>Status</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody id="my-orders-tbody">
                 <tr class="empty-row" id="my-orders-empty">
-                  <td colspan="9">No active orders placed yet in this session.</td>
+                  <td colspan="8">No active orders placed yet in this session.</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </section>
 
-        <!-- Column 3: Public Trade Tape (Live WebSocket Stream) -->
+        <!-- Column 3: Ingress Audit Trail & Gateway Stream Log -->
         <section class="panel panel-trade-tape">
           <div class="panel-header">
             <div class="header-with-badge">
-              <h2>Public Trade Feed</h2>
-              <span class="feed-pulse" id="tape-pulse"></span>
+              <h2>Gateway Audit Trail</h2>
+              <span class="feed-pulse" id="audit-pulse"></span>
             </div>
-            <div class="header-tools">
-              <label class="toggle-checkbox" title="Toggle automatic scrolling to latest trades">
-                <input type="checkbox" id="chk-autoscroll" checked>
-                <span>Auto-scroll</span>
-              </label>
-            </div>
+            <button type="button" id="btn-clear-audit" class="btn btn-link btn-xs">Clear Log</button>
           </div>
 
-          <div class="panel-body table-container" id="trade-tape-container">
-            <table class="data-table" id="table-trades">
+          <div class="panel-body table-container" id="audit-container">
+            <table class="data-table" id="table-audit">
               <thead>
                 <tr>
                   <th>Time</th>
-                  <th>Side</th>
-                  <th>Price (USDT)</th>
-                  <th>Size</th>
-                  <th>Trade ID</th>
-                  <th>Taker / Maker</th>
+                  <th>Event</th>
+                  <th>HTTP</th>
+                  <th>Latency</th>
+                  <th>Details</th>
                 </tr>
               </thead>
-              <tbody id="trade-tape-tbody">
-                <tr class="empty-row" id="trade-tape-empty">
-                  <td colspan="6">Waiting for trade executions from matching engine...</td>
+              <tbody id="audit-tbody">
+                <tr class="empty-row" id="audit-empty">
+                  <td colspan="5">Gateway ingress audit log initialized. Waiting for requests...</td>
                 </tr>
               </tbody>
             </table>
@@ -281,4 +342,3 @@
   <script src="js/app.js"></script>
 </body>
 </html>
-

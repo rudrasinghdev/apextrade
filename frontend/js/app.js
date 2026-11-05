@@ -1,6 +1,6 @@
 /**
  * ApexTrade Core - High-Performance Trading Terminal Client
- * Connects to Spring Boot Ingress REST API & Egress WebSocket
+ * REST Ingress & Gateway Risk Subsystem (Zero-WebSocket Staging Mode)
  */
 
 (() => {
@@ -8,588 +8,719 @@
 
   // --- Configuration ---
   const DEFAULT_PORT = 8080;
-  const PROD_GATEWAY = 'apextrade-core-backend.onrender.com';
-
   const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  const API_HOST = isLocal ? `localhost:${DEFAULT_PORT}` : PROD_GATEWAY;
+  const API_HOST = isLocal ? `localhost:${DEFAULT_PORT}` : 'apextrade-core-backend.onrender.com';
   const REST_BASE_URL = isLocal ? `http://${API_HOST}` : `https://${API_HOST}`;
-  const WS_URL = isLocal ? `ws://${API_HOST}/ws/trades` : `wss://${API_HOST}/ws/trades`;
 
-  function updateFooterUrls() {
-    const footerRest = document.getElementById('footer-rest-url');
-    const footerWs = document.getElementById('footer-ws-url');
-    if (footerRest) footerRest.textContent = `${REST_BASE_URL}/api/v1/orders`;
-    if (footerWs) footerWs.textContent = WS_URL;
-  }
-  updateFooterUrls();
+  // --- Persistent Storage Keys ---
+  const STORAGE_TOKEN_KEY = 'apextrade_jwt';
+  const STORAGE_USER_KEY = 'apextrade_user';
+  const STORAGE_ORDERS_KEY = 'apextrade_active_orders';
 
-  // --- State ---
-  let socket = null;
-  let reconnectTimer = null;
-  let activeSide = 'BUY';
-  let activeOrderType = 'LIMIT';
-  let totalTradesCount = 0;
-  let sessionVolume = 0;
-  let lastPrice = null;
-  const MAX_TAPE_ROWS = 50;
-
-  // Local storage key for persistent order cache
-  const STORAGE_KEY = 'apextrade_active_orders';
-  let myOrders = loadOrdersFromStorage();
+  // --- Application State ---
+  const state = {
+    token: sessionStorage.getItem(STORAGE_TOKEN_KEY) || null,
+    user: JSON.parse(sessionStorage.getItem(STORAGE_USER_KEY) || 'null'),
+    gatewayOnline: false,
+    activeSide: 'BUY',
+    activeOrderType: 'LIMIT',
+    myOrders: loadOrdersFromStorage(),
+    auditLogs: []
+  };
 
   // --- DOM Elements ---
-  const views = {
-    welcome: document.getElementById('welcome-view'),
-    terminal: document.getElementById('terminal-view')
-  };
+  const elements = {
+    // Top Health Strip
+    gatewayDot: document.getElementById('gateway-dot'),
+    gatewayStatusText: document.getElementById('gateway-status-text'),
 
-  const nav = {
-    btnEnter: document.getElementById('btn-enter-terminal'),
-    btnExit: document.getElementById('btn-exit-terminal'),
-    wsStatus: document.getElementById('ws-status'),
-    wsDot: document.getElementById('ws-dot'),
-    wsStatusText: document.getElementById('ws-status-text'),
-    userIdInput: document.getElementById('trader-user-id')
-  };
+    // Views
+    welcomeView: document.getElementById('welcome-view'),
+    terminalView: document.getElementById('terminal-view'),
 
-  const market = {
-    ltp: document.getElementById('ltp-display'),
-    lastQty: document.getElementById('last-qty-display'),
-    totalVol: document.getElementById('total-vol-display'),
-    tradeCount: document.getElementById('trade-count-display')
-  };
+    // Auth Container
+    authContainer: document.getElementById('auth-container'),
+    authAlert: document.getElementById('auth-alert'),
+    tabLogin: document.getElementById('tab-login'),
+    tabRegister: document.getElementById('tab-register'),
+    formLogin: document.getElementById('form-login'),
+    formRegister: document.getElementById('form-register'),
+    loginEmail: document.getElementById('login-email'),
+    loginPassword: document.getElementById('login-password'),
+    regEmail: document.getElementById('reg-email'),
+    regPassword: document.getElementById('reg-password'),
+    btnLoginSubmit: document.getElementById('btn-login-submit'),
+    btnRegSubmit: document.getElementById('btn-register-submit'),
 
-  const form = {
+    // Launchpad Container
+    launchpadContainer: document.getElementById('launchpad-container'),
+    lpUserEmail: document.getElementById('lp-user-email'),
+    lpUserId: document.getElementById('lp-user-id'),
+    lpUserRole: document.getElementById('lp-user-role'),
+    lpTokenSnippet: document.getElementById('lp-token-snippet'),
+    btnUpgradeTerminal: document.getElementById('btn-upgrade-terminal'),
+    btnLogout: document.getElementById('btn-logout'),
+
+    // Terminal Navbar
+    terminalUserEmail: document.getElementById('terminal-user-email'),
+    terminalUserId: document.getElementById('terminal-user-id'),
+    btnBackLaunchpad: document.getElementById('btn-back-launchpad'),
+    btnTerminalLogout: document.getElementById('btn-terminal-logout'),
+    latencyDisplay: document.getElementById('latency-display'),
+    ltpDisplay: document.getElementById('ltp-display'),
+
+    // DMA Order Form
     orderForm: document.getElementById('order-form'),
-    btnBuy: document.getElementById('btn-side-buy'),
-    btnSell: document.getElementById('btn-side-sell'),
-    btnLimit: document.getElementById('btn-type-limit'),
-    btnMarket: document.getElementById('btn-type-market'),
+    btnSideBuy: document.getElementById('btn-side-buy'),
+    btnSideSell: document.getElementById('btn-side-sell'),
+    btnTypeLimit: document.getElementById('btn-type-limit'),
+    btnTypeMarket: document.getElementById('btn-type-market'),
     inputPrice: document.getElementById('input-price'),
     inputQty: document.getElementById('input-qty'),
     groupPrice: document.getElementById('group-price'),
-    btnSubmit: document.getElementById('btn-submit-order'),
+    btnSubmitOrder: document.getElementById('btn-submit-order'),
     summaryNotional: document.getElementById('summary-notional'),
     statusBanner: document.getElementById('order-status-banner'),
     bannerTitle: document.getElementById('banner-title'),
     bannerDesc: document.getElementById('banner-desc'),
-    btnDemoCross: document.getElementById('btn-demo-cross')
+    btnDemoCross: document.getElementById('btn-demo-cross'),
+
+    // Steppers & Presets
+    btnPriceMinus: document.getElementById('btn-price-minus'),
+    btnPricePlus: document.getElementById('btn-price-plus'),
+    btnQtyMinus: document.getElementById('btn-qty-minus'),
+    btnQtyPlus: document.getElementById('btn-qty-plus'),
+
+    // My Orders Table
+    myOrdersTbody: document.getElementById('my-orders-tbody'),
+    myOrdersEmpty: document.getElementById('my-orders-empty'),
+    myOrdersCount: document.getElementById('my-orders-count'),
+    btnClearOrders: document.getElementById('btn-clear-orders'),
+
+    // Audit Trail Table
+    auditTbody: document.getElementById('audit-tbody'),
+    auditEmpty: document.getElementById('audit-empty'),
+    auditPulse: document.getElementById('audit-pulse'),
+    btnClearAudit: document.getElementById('btn-clear-audit')
   };
 
-  const myOrdersUI = {
-    tbody: document.getElementById('my-orders-tbody'),
-    emptyRow: document.getElementById('my-orders-empty'),
-    countBadge: document.getElementById('my-orders-count'),
-    btnClear: document.getElementById('btn-clear-orders')
-  };
+  // ==========================================================================
+  // HTTP Client (Zero-Dependency Async Fetch with Bearer Auth)
+  // ==========================================================================
 
-  const tradeTapeUI = {
-    tbody: document.getElementById('trade-tape-tbody'),
-    emptyRow: document.getElementById('trade-tape-empty'),
-    pulse: document.getElementById('tape-pulse'),
-    chkAutoscroll: document.getElementById('chk-autoscroll'),
-    container: document.getElementById('trade-tape-container')
-  };
+  async function apiRequest(endpoint, options = {}) {
+    const url = `${REST_BASE_URL}${endpoint}`;
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    };
 
-  // --- View Switcher ---
-  function showView(viewName) {
-    if (viewName === 'terminal') {
-      views.welcome.classList.add('hidden');
-      views.terminal.classList.remove('hidden');
-      connectWebSocket();
-      renderMyOrders();
-    } else {
-      views.terminal.classList.add('hidden');
-      views.welcome.classList.remove('hidden');
-    }
-  }
-
-  nav.btnEnter.addEventListener('click', () => showView('terminal'));
-  nav.btnExit.addEventListener('click', () => showView('welcome'));
-
-  // --- WebSocket Connection ---
-  function connectWebSocket() {
-    if (!WS_URL) {
-      setWsStatus('disconnected', 'NO GATEWAY HOST');
-      return;
+    if (state.token && !options.skipAuth) {
+      headers['Authorization'] = `Bearer ${state.token}`;
     }
 
-    if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
-      return;
-    }
-
-    setWsStatus('connecting', 'CONNECTING...');
-
+    const startTime = performance.now();
     try {
-      socket = new WebSocket(WS_URL);
+      const response = await fetch(url, {
+        ...options,
+        headers
+      });
 
-      socket.onopen = () => {
-        setWsStatus('connected', 'CONNECTED');
-        if (reconnectTimer) {
-          clearTimeout(reconnectTimer);
-          reconnectTimer = null;
-        }
-      };
+      const elapsedMs = Math.round(performance.now() - startTime);
+      elements.latencyDisplay.textContent = `${elapsedMs} ms`;
 
-      socket.onmessage = (event) => {
-        try {
-          const trade = JSON.parse(event.data);
-          handleIncomingTrade(trade);
-        } catch (e) {
-          console.error('[ApexTrade] Error parsing WS payload:', e, event.data);
-        }
-      };
+      let data = null;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      }
 
-      socket.onerror = (err) => {
-        console.warn('[ApexTrade] WebSocket error:', err);
-      };
-
-      socket.onclose = () => {
-        setWsStatus('disconnected', 'DISCONNECTED');
-        if (!reconnectTimer) {
-          reconnectTimer = setTimeout(() => {
-            reconnectTimer = null;
-            if (!views.terminal.classList.contains('hidden')) {
-              connectWebSocket();
-            }
-          }, 2000);
-        }
+      return {
+        ok: response.ok,
+        status: response.status,
+        data,
+        elapsedMs
       };
     } catch (err) {
-      setWsStatus('disconnected', 'OFFLINE');
-      console.error('[ApexTrade] Connection failed:', err);
+      const elapsedMs = Math.round(performance.now() - startTime);
+      return {
+        ok: false,
+        status: 0,
+        error: err.message,
+        elapsedMs
+      };
     }
   }
 
-  function setWsStatus(state, text) {
-    nav.wsDot.className = `status-dot ${state}`;
-    nav.wsStatusText.textContent = text;
-  }
+  // ==========================================================================
+  // Gateway Health Poller
+  // ==========================================================================
 
-  // --- Trade Feed Processing ---
-  function handleIncomingTrade(trade) {
-    totalTradesCount++;
-    sessionVolume += Number(trade.quantity);
-
-    // 1. Update Market Strip
-    const priceNum = Number(trade.price);
-    const qtyNum = Number(trade.quantity);
-
-    if (lastPrice !== null) {
-      market.ltp.classList.remove('price-up', 'price-down');
-      void market.ltp.offsetWidth; // Trigger reflow for animation restart
-      if (priceNum > lastPrice) {
-        market.ltp.classList.add('price-up');
-      } else if (priceNum < lastPrice) {
-        market.ltp.classList.add('price-down');
-      }
-    }
-    lastPrice = priceNum;
-
-    market.ltp.textContent = formatPrice(priceNum);
-    market.lastQty.textContent = qtyNum.toLocaleString();
-    market.totalVol.textContent = sessionVolume.toLocaleString();
-    market.tradeCount.textContent = totalTradesCount.toLocaleString();
-
-    // 2. Pulse tape indicator
-    tradeTapeUI.pulse.classList.remove('pulse-active');
-    void tradeTapeUI.pulse.offsetWidth;
-    tradeTapeUI.pulse.classList.add('pulse-active');
-
-    // 3. Prepend to Trade Tape
-    if (tradeTapeUI.emptyRow && tradeTapeUI.emptyRow.parentNode) {
-      tradeTapeUI.emptyRow.remove();
-    }
-
-    const tr = document.createElement('tr');
-    const isBuy = trade.takerSide === 'BUY';
-    tr.className = isBuy ? 'row-flash-buy' : 'row-flash-sell';
-
-    const timeStr = formatTimestamp(trade.timestamp);
-    tr.innerHTML = `
-      <td>${timeStr}</td>
-      <td><span class="badge-side ${isBuy ? 'badge-buy' : 'badge-sell'}">${trade.takerSide}</span></td>
-      <td class="font-mono font-bold">${formatPrice(priceNum)}</td>
-      <td class="font-mono">${qtyNum.toLocaleString()}</td>
-      <td class="font-mono text-muted">#${trade.tradeId}</td>
-      <td class="font-mono text-muted">${trade.takerOrderId} / ${trade.makerOrderId}</td>
-    `;
-
-    tradeTapeUI.tbody.insertBefore(tr, tradeTapeUI.tbody.firstChild);
-
-    // Cap tape rows
-    while (tradeTapeUI.tbody.children.length > MAX_TAPE_ROWS) {
-      tradeTapeUI.tbody.removeChild(tradeTapeUI.tbody.lastChild);
-    }
-
-    if (tradeTapeUI.chkAutoscroll.checked) {
-      tradeTapeUI.container.scrollTop = 0;
-    }
-
-    // 4. Update My Orders match state if orderId matches
-    updateOrderFills(trade);
-  }
-
-  function updateOrderFills(trade) {
-    let changed = false;
-    const makerId = Number(trade.makerOrderId);
-    const takerId = Number(trade.takerOrderId);
-    const fillQty = Number(trade.quantity);
-
-    for (const order of myOrders) {
-      if (order.orderId === makerId || order.orderId === takerId) {
-        order.filledQty = (order.filledQty || 0) + fillQty;
-        if (order.filledQty >= order.quantity) {
-          order.status = 'FILLED';
-        } else {
-          order.status = 'PARTIALLY_FILLED';
-        }
-        changed = true;
-      }
-    }
-
-    if (changed) {
-      saveOrdersToStorage();
-      renderMyOrders();
+  async function checkGatewayHealth() {
+    const res = await apiRequest('/api/health', { skipAuth: true });
+    if (res.ok) {
+      state.gatewayOnline = true;
+      elements.gatewayDot.className = 'status-dot dot-online';
+      elements.gatewayStatusText.textContent = `Gateway Online (${REST_BASE_URL}) [${res.elapsedMs}ms]`;
+    } else {
+      state.gatewayOnline = false;
+      elements.gatewayDot.className = 'status-dot dot-offline';
+      elements.gatewayStatusText.textContent = `Gateway Offline - Connection Refused (${REST_BASE_URL})`;
     }
   }
 
-  // --- Order Placement Form Controls ---
-  form.btnBuy.addEventListener('click', () => {
-    activeSide = 'BUY';
-    form.btnBuy.className = 'btn-toggle active-buy';
-    form.btnSell.className = 'btn-toggle';
-    form.btnSubmit.className = 'btn btn-buy btn-block';
-    updateSubmitButtonText();
-  });
+  // Poll health immediately and every 10 seconds
+  checkGatewayHealth();
+  setInterval(checkGatewayHealth, 10000);
 
-  form.btnSell.addEventListener('click', () => {
-    activeSide = 'SELL';
-    form.btnSell.className = 'btn-toggle active-sell';
-    form.btnBuy.className = 'btn-toggle';
-    form.btnSubmit.className = 'btn btn-sell btn-block';
-    updateSubmitButtonText();
-  });
+  // ==========================================================================
+  // Auth & Session Management
+  // ==========================================================================
 
-  form.btnLimit.addEventListener('click', () => {
-    activeOrderType = 'LIMIT';
-    form.btnLimit.className = 'btn-toggle active';
-    form.btnMarket.className = 'btn-toggle';
-    form.inputPrice.disabled = false;
-    form.groupPrice.style.opacity = '1';
-    updateSubmitButtonText();
-    updateNotional();
-  });
+  function updateAuthUI() {
+    if (state.token && state.user) {
+      // User is logged in -> show Launchpad, hide Auth Box
+      elements.authContainer.classList.add('hidden');
+      elements.launchpadContainer.classList.remove('hidden');
 
-  form.btnMarket.addEventListener('click', () => {
-    activeOrderType = 'MARKET';
-    form.btnMarket.className = 'btn-toggle active';
-    form.btnLimit.className = 'btn-toggle';
-    form.inputPrice.disabled = true;
-    form.groupPrice.style.opacity = '0.5';
-    updateSubmitButtonText();
-    updateNotional();
-  });
+      elements.lpUserEmail.textContent = state.user.email;
+      elements.lpUserId.textContent = `#${state.user.userId}`;
+      elements.lpUserRole.textContent = state.user.role || 'ROLE_TRADER';
+      elements.lpTokenSnippet.textContent = `${state.token.substring(0, 24)}...`;
 
-  function updateSubmitButtonText() {
-    form.btnSubmit.textContent = `Submit ${activeSide} ${activeOrderType} Order`;
+      // Update terminal navbar chips
+      elements.terminalUserEmail.textContent = state.user.email;
+      elements.terminalUserId.textContent = `#${state.user.userId}`;
+    } else {
+      // User is logged out -> show Auth Box, hide Launchpad
+      elements.launchpadContainer.classList.add('hidden');
+      elements.authContainer.classList.remove('hidden');
+      elements.terminalView.classList.add('hidden');
+      elements.welcomeView.classList.remove('hidden');
+    }
   }
 
-  // Price & Quantity Steppers
-  document.getElementById('btn-price-plus').addEventListener('click', () => {
-    form.inputPrice.value = Math.max(1, Number(form.inputPrice.value) + 10);
-    updateNotional();
-  });
-  document.getElementById('btn-price-minus').addEventListener('click', () => {
-    form.inputPrice.value = Math.max(1, Number(form.inputPrice.value) - 10);
-    updateNotional();
-  });
-  document.getElementById('btn-qty-plus').addEventListener('click', () => {
-    form.inputQty.value = Math.max(1, Number(form.inputQty.value) + 10);
-    updateNotional();
-  });
-  document.getElementById('btn-qty-minus').addEventListener('click', () => {
-    form.inputQty.value = Math.max(1, Number(form.inputQty.value) - 10);
-    updateNotional();
+  function setAuthAlert(type, message) {
+    elements.authAlert.className = `alert-banner alert-${type}`;
+    elements.authAlert.textContent = message;
+    elements.authAlert.classList.remove('hidden');
+  }
+
+  function clearAuthAlert() {
+    elements.authAlert.classList.add('hidden');
+    elements.authAlert.textContent = '';
+  }
+
+  // Auth Tab Switchers
+  elements.tabLogin.addEventListener('click', () => {
+    elements.tabLogin.classList.add('active');
+    elements.tabRegister.classList.remove('active');
+    elements.formLogin.classList.remove('hidden');
+    elements.formRegister.classList.add('hidden');
+    clearAuthAlert();
   });
 
-  // Quick Preset Buttons
-  document.querySelectorAll('.btn-preset[data-price-offset]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const offset = Number(btn.getAttribute('data-price-offset'));
-      const base = lastPrice ? lastPrice : Number(form.inputPrice.value || 50000);
-      form.inputPrice.value = Math.max(1, base + offset);
-      updateNotional();
+  elements.tabRegister.addEventListener('click', () => {
+    elements.tabRegister.classList.add('active');
+    elements.tabLogin.classList.remove('active');
+    elements.formRegister.classList.remove('hidden');
+    elements.formLogin.classList.add('hidden');
+    clearAuthAlert();
+  });
+
+  // Login Form Submission
+  elements.formLogin.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAuthAlert();
+
+    const email = elements.loginEmail.value.trim();
+    const password = elements.loginPassword.value;
+
+    if (!email || !password) {
+      setAuthAlert('error', 'Please enter both email and password.');
+      return;
+    }
+
+    elements.btnLoginSubmit.disabled = true;
+    elements.btnLoginSubmit.textContent = 'Authenticating...';
+
+    const res = await apiRequest('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+      skipAuth: true
     });
+
+    elements.btnLoginSubmit.disabled = false;
+    elements.btnLoginSubmit.textContent = 'Sign In to Gateway';
+
+    if (res.ok && res.data && res.data.token) {
+      state.token = res.data.token;
+      state.user = {
+        userId: res.data.userId,
+        email: res.data.email,
+        role: 'ROLE_TRADER'
+      };
+
+      sessionStorage.setItem(STORAGE_TOKEN_KEY, state.token);
+      sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(state.user));
+
+      logAudit('LOGIN_SUCCESS', res.status, res.elapsedMs, `Authenticated as #${state.user.userId} (${email})`);
+
+      // Hydrate full profile from /api/users/me in background
+      hydrateProfile();
+
+      updateAuthUI();
+    } else {
+      const errMsg = res.data?.message || res.data?.error || 'Invalid email or password.';
+      setAuthAlert('error', `Login Failed: ${errMsg}`);
+      logAudit('LOGIN_FAILED', res.status, res.elapsedMs, errMsg);
+    }
   });
 
-  document.querySelectorAll('.btn-preset[data-qty]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      form.inputQty.value = btn.getAttribute('data-qty');
-      updateNotional();
+  // Register Form Submission
+  elements.formRegister.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAuthAlert();
+
+    const email = elements.regEmail.value.trim();
+    const password = elements.regPassword.value;
+
+    if (!email || !password) {
+      setAuthAlert('error', 'Please fill in all registration fields.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setAuthAlert('error', 'Password must be at least 6 characters.');
+      return;
+    }
+
+    elements.btnRegSubmit.disabled = true;
+    elements.btnRegSubmit.textContent = 'Creating Account...';
+
+    const res = await apiRequest('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+      skipAuth: true
     });
+
+    elements.btnRegSubmit.disabled = false;
+    elements.btnRegSubmit.textContent = 'Register Account';
+
+    if (res.ok && res.data) {
+      logAudit('REGISTER_SUCCESS', res.status, res.elapsedMs, `Account created for ${email} (ID: #${res.data.userId})`);
+      setAuthAlert('success', `Account #${res.data.userId} created! Please sign in with your credentials.`);
+
+      // Pre-fill login email and switch to login tab
+      elements.loginEmail.value = email;
+      elements.loginPassword.value = '';
+      elements.tabLogin.click();
+    } else {
+      const errMsg = res.data?.message || res.data?.error || 'Registration failed.';
+      setAuthAlert('error', `Registration Error: ${errMsg}`);
+      logAudit('REGISTER_FAILED', res.status, res.elapsedMs, errMsg);
+    }
   });
 
-  form.inputPrice.addEventListener('input', updateNotional);
-  form.inputQty.addEventListener('input', updateNotional);
+  // Hydrate user profile from /api/users/me
+  async function hydrateProfile() {
+    if (!state.token) return;
+    const res = await apiRequest('/api/users/me');
+    if (res.ok && res.data) {
+      state.user = {
+        ...state.user,
+        userId: res.data.userId,
+        email: res.data.email,
+        role: res.data.role
+      };
+      sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(state.user));
+      elements.lpUserRole.textContent = res.data.role || 'ROLE_TRADER';
+      elements.lpUserId.textContent = `#${res.data.userId}`;
+    }
+  }
+
+  // Logout Handlers
+  function handleLogout() {
+    state.token = null;
+    state.user = null;
+    sessionStorage.removeItem(STORAGE_TOKEN_KEY);
+    sessionStorage.removeItem(STORAGE_USER_KEY);
+    logAudit('LOGOUT', 200, 0, 'User logged out and session cleared.');
+    updateAuthUI();
+  }
+
+  elements.btnLogout.addEventListener('click', handleLogout);
+  elements.btnTerminalLogout.addEventListener('click', handleLogout);
+
+  // Upgrade to Terminal (WebSocket Staging Button)
+  elements.btnUpgradeTerminal.addEventListener('click', () => {
+    // Switch to Terminal View (No active WS connection per specification)
+    elements.welcomeView.classList.add('hidden');
+    elements.terminalView.classList.remove('hidden');
+    renderMyOrders();
+    logAudit('UPGRADE_TERMINAL', 200, 0, 'Entered Trading Terminal. WebSocket stream held in standby.');
+  });
+
+  elements.btnBackLaunchpad.addEventListener('click', () => {
+    elements.terminalView.classList.add('hidden');
+    elements.welcomeView.classList.remove('hidden');
+  });
+
+  // ==========================================================================
+  // DMA Order Placement Form Controls
+  // ==========================================================================
+
+  elements.btnSideBuy.addEventListener('click', () => {
+    state.activeSide = 'BUY';
+    elements.btnSideBuy.className = 'btn-toggle active-buy';
+    elements.btnSideSell.className = 'btn-toggle';
+    elements.btnSubmitOrder.className = 'btn btn-buy btn-block';
+    updateSubmitButton();
+  });
+
+  elements.btnSideSell.addEventListener('click', () => {
+    state.activeSide = 'SELL';
+    elements.btnSideSell.className = 'btn-toggle active-sell';
+    elements.btnSideBuy.className = 'btn-toggle';
+    elements.btnSubmitOrder.className = 'btn btn-sell btn-block';
+    updateSubmitButton();
+  });
+
+  elements.btnTypeLimit.addEventListener('click', () => {
+    state.activeOrderType = 'LIMIT';
+    elements.btnTypeLimit.className = 'btn-toggle active';
+    elements.btnTypeMarket.className = 'btn-toggle';
+    elements.inputPrice.disabled = false;
+    elements.groupPrice.style.opacity = '1';
+    updateSubmitButton();
+    updateNotional();
+  });
+
+  elements.btnTypeMarket.addEventListener('click', () => {
+    state.activeOrderType = 'MARKET';
+    elements.btnTypeMarket.className = 'btn-toggle active';
+    elements.btnTypeLimit.className = 'btn-toggle';
+    elements.inputPrice.disabled = true;
+    elements.groupPrice.style.opacity = '0.4';
+    updateSubmitButton();
+    updateNotional();
+  });
+
+  function updateSubmitButton() {
+    elements.btnSubmitOrder.textContent = `Submit ${state.activeSide} ${state.activeOrderType} Order`;
+  }
 
   function updateNotional() {
-    const qty = Number(form.inputQty.value) || 0;
-    if (activeOrderType === 'MARKET') {
-      const estPrice = lastPrice || 50000;
-      form.summaryNotional.textContent = `~ ${(qty * estPrice).toLocaleString()} USDT (Market Est.)`;
-    } else {
-      const price = Number(form.inputPrice.value) || 0;
-      form.summaryNotional.textContent = `${(qty * price).toLocaleString()} USDT`;
-    }
+    const qty = Number(elements.inputQty.value) || 0;
+    const price = state.activeOrderType === 'LIMIT' ? (Number(elements.inputPrice.value) || 0) : 50000;
+    const notional = qty * price;
+    elements.summaryNotional.textContent = `${notional.toLocaleString()} USDT`;
   }
 
-  // Submit Order Handler
-  form.orderForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await placeOrderFromForm();
+  // Steppers
+  elements.btnPriceMinus.addEventListener('click', () => {
+    elements.inputPrice.value = Math.max(1, Number(elements.inputPrice.value) - 10);
+    updateNotional();
+  });
+  elements.btnPricePlus.addEventListener('click', () => {
+    elements.inputPrice.value = Math.max(1, Number(elements.inputPrice.value) + 10);
+    updateNotional();
+  });
+  elements.btnQtyMinus.addEventListener('click', () => {
+    elements.inputQty.value = Math.max(1, Number(elements.inputQty.value) - 10);
+    updateNotional();
+  });
+  elements.btnQtyPlus.addEventListener('click', () => {
+    elements.inputQty.value = Math.max(1, Number(elements.inputQty.value) + 10);
+    updateNotional();
   });
 
-  async function placeOrderFromForm() {
-    const userId = Number(nav.userIdInput.value) || 101;
-    const qty = Number(form.inputQty.value);
-    const price = activeOrderType === 'LIMIT' ? Number(form.inputPrice.value) : 0;
+  elements.inputPrice.addEventListener('input', updateNotional);
+  elements.inputQty.addEventListener('input', updateNotional);
+
+  // Quick Presets
+  document.querySelectorAll('.btn-preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.priceOffset !== undefined) {
+        const offset = Number(btn.dataset.priceOffset);
+        const base = 50000;
+        elements.inputPrice.value = Math.max(1, base + offset);
+      }
+      if (btn.dataset.qty !== undefined) {
+        elements.inputQty.value = Number(btn.dataset.qty);
+      }
+      updateNotional();
+    });
+  });
+
+  function showBanner(type, title, desc) {
+    elements.statusBanner.className = `status-banner banner-${type}`;
+    elements.bannerTitle.textContent = title;
+    elements.bannerDesc.textContent = desc;
+    elements.statusBanner.classList.remove('hidden');
+  }
+
+  // ==========================================================================
+  // Order Submission & Cancellation
+  // ==========================================================================
+
+  elements.orderForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!state.token || !state.user) {
+      showBanner('error', 'UNAUTHENTICATED', 'You must sign in to place orders.');
+      return;
+    }
+
+    const qty = Number(elements.inputQty.value);
+    const price = state.activeOrderType === 'LIMIT' ? Number(elements.inputPrice.value) : 0;
 
     if (qty <= 0) {
       showBanner('error', 'INVALID QUANTITY', 'Quantity must be greater than zero.');
       return;
     }
-    if (activeOrderType === 'LIMIT' && price <= 0) {
-      showBanner('error', 'INVALID PRICE', 'Limit price must be greater than zero.');
+    if (state.activeOrderType === 'LIMIT' && price <= 0) {
+      showBanner('error', 'INVALID PRICE', 'Price must be greater than zero for LIMIT orders.');
       return;
     }
 
     const payload = {
-      userId: userId,
-      side: activeSide,
+      userId: state.user.userId,
+      side: state.activeSide,
       price: price,
       quantity: qty,
-      orderType: activeOrderType
+      orderType: state.activeOrderType
     };
 
-    form.btnSubmit.disabled = true;
+    elements.btnSubmitOrder.disabled = true;
 
-    try {
-      const response = await fetch(`${REST_BASE_URL}/api/v1/orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+    const res = await apiRequest('/api/v1/orders', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
 
-      const data = await response.json();
+    elements.btnSubmitOrder.disabled = false;
 
-      if (response.ok && data.status === 'ACCEPTED') {
-        showBanner('success', 'ORDER ACCEPTED BY INGRESS DISRUPTOR', `Order ID: #${data.orderId} | Timestamp: ${data.timestampNs} ns`);
+    if (res.ok && res.data && res.data.status === 'ACCEPTED') {
+      showBanner(
+        'success',
+        `ORDER ACCEPTED BY INGRESS DISRUPTOR (#${res.data.orderId})`,
+        `Ingress Timestamp: ${res.data.timestampNs} ns | Roundtrip: ${res.elapsedMs} ms`
+      );
 
-        // Cache order locally
-        const newOrder = {
-          orderId: data.orderId,
-          userId: userId,
-          time: new Date().toLocaleTimeString(),
-          side: activeSide,
-          orderType: activeOrderType,
-          price: activeOrderType === 'LIMIT' ? price : 'MARKET',
-          quantity: qty,
-          filledQty: 0,
-          status: 'QUEUED'
-        };
+      const newOrder = {
+        orderId: res.data.orderId,
+        userId: state.user.userId,
+        time: new Date().toLocaleTimeString(),
+        side: state.activeSide,
+        orderType: state.activeOrderType,
+        price: state.activeOrderType === 'LIMIT' ? price : 'MARKET',
+        quantity: qty,
+        status: 'QUEUED'
+      };
 
-        myOrders.unshift(newOrder);
-        saveOrdersToStorage();
-        renderMyOrders();
-      } else {
-        showBanner('error', 'ORDER REJECTED', data.message || 'Execution rejected by engine.');
-      }
-    } catch (err) {
-      showBanner('error', 'NETWORK / GATEWAY ERROR', `Failed to reach ${REST_BASE_URL}: ${err.message}`);
-    } finally {
-      form.btnSubmit.disabled = false;
-    }
-  }
-
-  // --- Order Cancellation ---
-  async function cancelOrder(orderId) {
-    try {
-      const response = await fetch(`${REST_BASE_URL}/api/v1/orders/${orderId}`, {
-        method: 'DELETE'
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.status === 'ACCEPTED') {
-        showBanner('success', 'ORDER CANCELLED', `Order #${orderId} cancelled in matching engine.`);
-        updateOrderStatus(orderId, 'CANCELLED');
-      } else {
-        showBanner('error', 'CANCEL FAILED', data.message || `Unable to cancel order #${orderId}`);
-      }
-    } catch (err) {
-      showBanner('error', 'GATEWAY ERROR', `Cancel request failed: ${err.message}`);
-    }
-  }
-
-  function updateOrderStatus(orderId, newStatus) {
-    const order = myOrders.find(o => o.orderId === orderId);
-    if (order) {
-      order.status = newStatus;
+      state.myOrders.unshift(newOrder);
       saveOrdersToStorage();
       renderMyOrders();
-    }
-  }
 
-  // --- Quick Demo Cross Match Helper ---
-  form.btnDemoCross.addEventListener('click', async () => {
-    form.btnDemoCross.disabled = true;
-    form.btnDemoCross.textContent = '⏳ Executing Match...';
-
-    const testPrice = 50000;
-    const testQty = 25;
-    const userId1 = 101;
-    const userId2 = 102;
-
-    try {
-      // 1. Post BUY Order
-      const buyRes = await fetch(`${REST_BASE_URL}/api/v1/orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: userId1, side: 'BUY', price: testPrice, quantity: testQty, orderType: 'LIMIT' })
-      });
-      const buyData = await buyRes.json();
-      if (buyData.status === 'ACCEPTED') {
-        myOrders.unshift({
-          orderId: buyData.orderId,
-          userId: userId1,
-          time: new Date().toLocaleTimeString(),
-          side: 'BUY',
-          orderType: 'LIMIT',
-          price: testPrice,
-          quantity: testQty,
-          filledQty: 0,
-          status: 'QUEUED'
-        });
-      }
-
-      // Small delay
-      await new Promise(r => setTimeout(r, 60));
-
-      // 2. Post SELL Order (Crosses with BUY!)
-      const sellRes = await fetch(`${REST_BASE_URL}/api/v1/orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: userId2, side: 'SELL', price: testPrice, quantity: testQty, orderType: 'LIMIT' })
-      });
-      const sellData = await sellRes.json();
-      if (sellData.status === 'ACCEPTED') {
-        myOrders.unshift({
-          orderId: sellData.orderId,
-          userId: userId2,
-          time: new Date().toLocaleTimeString(),
-          side: 'SELL',
-          orderType: 'LIMIT',
-          price: testPrice,
-          quantity: testQty,
-          filledQty: 0,
-          status: 'QUEUED'
-        });
-      }
-
-      saveOrdersToStorage();
-      renderMyOrders();
-      showBanner('success', 'CROSS PAIR DISPATCHED', `BUY #${buyData.orderId} and SELL #${sellData.orderId} dispatched to Ingress Disruptor!`);
-    } catch (err) {
-      showBanner('error', 'DEMO FAILED', err.message);
-    } finally {
-      form.btnDemoCross.disabled = false;
-      form.btnDemoCross.textContent = '⚡ Place Cross Pair (Match Test)';
+      logAudit(
+        'ORDER_ACCEPTED',
+        res.status,
+        res.elapsedMs,
+        `${state.activeSide} ${state.activeOrderType} #${res.data.orderId} - ${qty} @ ${price}`
+      );
+    } else {
+      const errMsg = res.data?.message || res.data?.error || res.error || 'Order rejected by Gateway.';
+      showBanner('error', 'ORDER REJECTED BY GATEWAY', errMsg);
+      logAudit('ORDER_REJECTED', res.status, res.elapsedMs, errMsg);
     }
   });
 
-  // --- Render My Orders Table ---
-  function renderMyOrders() {
-    myOrdersUI.countBadge.textContent = myOrders.length;
+  // Cancel Order
+  async function cancelOrder(orderId) {
+    if (!state.token) return;
 
-    if (myOrders.length === 0) {
-      myOrdersUI.tbody.innerHTML = `
+    const res = await apiRequest(`/api/v1/orders/${orderId}`, {
+      method: 'DELETE'
+    });
+
+    if (res.ok && res.data && res.data.status === 'ACCEPTED') {
+      showBanner('success', `ORDER #${orderId} CANCELLED`, `Cancelled in matching pipeline in ${res.elapsedMs} ms`);
+      const target = state.myOrders.find(o => o.orderId === orderId);
+      if (target) {
+        target.status = 'CANCELLED';
+        saveOrdersToStorage();
+        renderMyOrders();
+      }
+      logAudit('ORDER_CANCELLED', res.status, res.elapsedMs, `Order #${orderId} cancelled`);
+    } else {
+      const errMsg = res.data?.message || res.data?.error || `Unable to cancel #${orderId}`;
+      showBanner('error', 'CANCEL FAILED', errMsg);
+      logAudit('CANCEL_FAILED', res.status, res.elapsedMs, errMsg);
+    }
+  }
+
+  // Cross Test Match Helper
+  elements.btnDemoCross.addEventListener('click', async () => {
+    if (!state.token || !state.user) {
+      showBanner('error', 'UNAUTHENTICATED', 'Sign in first to run cross test.');
+      return;
+    }
+
+    elements.btnDemoCross.disabled = true;
+    elements.btnDemoCross.textContent = '⏳ Posting Buy & Sell Orders...';
+
+    const testPrice = 50000;
+    const testQty = 25;
+
+    // 1. Post BUY
+    const buyRes = await apiRequest('/api/v1/orders', {
+      method: 'POST',
+      body: JSON.stringify({
+        userId: state.user.userId,
+        side: 'BUY',
+        price: testPrice,
+        quantity: testQty,
+        orderType: 'LIMIT'
+      })
+    });
+
+    if (buyRes.ok && buyRes.data) {
+      state.myOrders.unshift({
+        orderId: buyRes.data.orderId,
+        userId: state.user.userId,
+        time: new Date().toLocaleTimeString(),
+        side: 'BUY',
+        orderType: 'LIMIT',
+        price: testPrice,
+        quantity: testQty,
+        status: 'QUEUED'
+      });
+      logAudit('CROSS_TEST_BUY', buyRes.status, buyRes.elapsedMs, `BUY #${buyRes.data.orderId} @ ${testPrice}`);
+    }
+
+    // Small delay
+    await new Promise(r => setTimeout(r, 60));
+
+    // 2. Post SELL
+    const sellRes = await apiRequest('/api/v1/orders', {
+      method: 'POST',
+      body: JSON.stringify({
+        userId: state.user.userId,
+        side: 'SELL',
+        price: testPrice,
+        quantity: testQty,
+        orderType: 'LIMIT'
+      })
+    });
+
+    if (sellRes.ok && sellRes.data) {
+      state.myOrders.unshift({
+        orderId: sellRes.data.orderId,
+        userId: state.user.userId,
+        time: new Date().toLocaleTimeString(),
+        side: 'SELL',
+        orderType: 'LIMIT',
+        price: testPrice,
+        quantity: testQty,
+        status: 'QUEUED'
+      });
+      logAudit('CROSS_TEST_SELL', sellRes.status, sellRes.elapsedMs, `SELL #${sellRes.data.orderId} @ ${testPrice}`);
+    }
+
+    saveOrdersToStorage();
+    renderMyOrders();
+
+    showBanner('success', 'CROSS TEST INGESTED', 'Injected BUY and SELL order pair into Disruptor RingBuffer.');
+    elements.btnDemoCross.disabled = false;
+    elements.btnDemoCross.textContent = '⚡ Fire Cross Test (Buy @ 50000 + Sell @ 50000)';
+  });
+
+  // ==========================================================================
+  // Renderers & Cache
+  // ==========================================================================
+
+  function renderMyOrders() {
+    elements.myOrdersCount.textContent = state.myOrders.length;
+
+    if (state.myOrders.length === 0) {
+      elements.myOrdersTbody.innerHTML = `
         <tr class="empty-row" id="my-orders-empty">
-          <td colspan="9">No active orders placed yet in this session.</td>
+          <td colspan="8">No active orders placed yet in this session.</td>
         </tr>
       `;
       return;
     }
 
-    myOrdersUI.tbody.innerHTML = '';
-
-    for (const order of myOrders) {
+    elements.myOrdersTbody.innerHTML = '';
+    state.myOrders.forEach(order => {
       const tr = document.createElement('tr');
       const isBuy = order.side === 'BUY';
-      const isFinished = order.status === 'FILLED' || order.status === 'CANCELLED' || order.status === 'REJECTED';
-
-      let statusBadgeClass = 'status-queued';
-      if (order.status === 'FILLED') statusBadgeClass = 'status-filled';
-      else if (order.status === 'PARTIALLY_FILLED') statusBadgeClass = 'status-partial';
-      else if (order.status === 'CANCELLED') statusBadgeClass = 'status-cancelled';
-      else if (order.status === 'REJECTED') statusBadgeClass = 'status-rejected';
+      const isCancelled = order.status === 'CANCELLED';
 
       tr.innerHTML = `
-        <td class="font-bold">#${order.orderId}</td>
-        <td class="text-muted">${order.time}</td>
+        <td class="font-mono text-muted">#${order.orderId}</td>
+        <td>${order.time}</td>
         <td><span class="badge-side ${isBuy ? 'badge-buy' : 'badge-sell'}">${order.side}</span></td>
-        <td>${order.orderType}</td>
-        <td>${typeof order.price === 'number' ? formatPrice(order.price) : order.price}</td>
-        <td>${order.quantity}</td>
-        <td>${order.filledQty || 0}</td>
-        <td><span class="badge-status ${statusBadgeClass}">${order.status}</span></td>
+        <td><span class="badge-type">${order.orderType}</span></td>
+        <td class="font-mono font-bold">${typeof order.price === 'number' ? order.price.toLocaleString() : order.price}</td>
+        <td class="font-mono">${order.quantity}</td>
+        <td><span class="status-pill status-${order.status.toLowerCase()}">${order.status}</span></td>
         <td>
-          <button type="button" class="btn-cancel" data-order-id="${order.orderId}" ${isFinished ? 'disabled' : ''}>
-            Cancel
+          <button type="button" class="btn-cancel" data-order-id="${order.orderId}" ${isCancelled ? 'disabled' : ''}>
+            ${isCancelled ? 'Cancelled' : 'Cancel'}
           </button>
         </td>
       `;
 
-      // Cancel button event
       const cancelBtn = tr.querySelector('.btn-cancel');
-      if (!isFinished) {
+      if (cancelBtn && !isCancelled) {
         cancelBtn.addEventListener('click', () => cancelOrder(order.orderId));
       }
 
-      myOrdersUI.tbody.appendChild(tr);
-    }
+      elements.myOrdersTbody.appendChild(tr);
+    });
   }
 
-  // Clear Completed Orders
-  myOrdersUI.btnClear.addEventListener('click', () => {
-    myOrders = myOrders.filter(o => o.status === 'QUEUED' || o.status === 'PARTIALLY_FILLED');
+  elements.btnClearOrders.addEventListener('click', () => {
+    state.myOrders = state.myOrders.filter(o => o.status !== 'CANCELLED');
     saveOrdersToStorage();
     renderMyOrders();
   });
 
-  // --- Helpers ---
-  function showBanner(type, title, desc) {
-    form.statusBanner.className = `status-banner ${type}`;
-    form.bannerTitle.textContent = title;
-    form.bannerDesc.textContent = desc;
+  function logAudit(event, httpStatus, latencyMs, details) {
+    if (elements.auditEmpty && elements.auditEmpty.parentNode) {
+      elements.auditEmpty.remove();
+    }
+
+    const tr = document.createElement('tr');
+    const isOk = httpStatus >= 200 && httpStatus < 300;
+
+    tr.innerHTML = `
+      <td class="font-mono text-muted">${new Date().toLocaleTimeString()}</td>
+      <td class="font-mono font-bold">${event}</td>
+      <td><span class="pill-spec ${isOk ? 'text-success' : 'text-sell'}">${httpStatus || 'ERR'}</span></td>
+      <td class="font-mono text-cyan">${latencyMs}ms</td>
+      <td class="text-secondary">${details}</td>
+    `;
+
+    elements.auditTbody.insertBefore(tr, elements.auditTbody.firstChild);
+
+    while (elements.auditTbody.children.length > 50) {
+      elements.auditTbody.removeChild(elements.auditTbody.lastChild);
+    }
   }
 
-  function formatPrice(val) {
-    return Number(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-
-  function formatTimestamp(ts) {
-    if (!ts) return new Date().toLocaleTimeString();
-    // Nanosecond vs millisecond detection
-    const ms = ts > 1e15 ? Math.floor(ts / 1e6) : (ts > 1e12 ? ts : ts * 1000);
-    const d = new Date(ms);
-    return isNaN(d.getTime()) ? new Date().toLocaleTimeString() : d.toLocaleTimeString() + '.' + String(d.getMilliseconds()).padStart(3, '0');
-  }
+  elements.btnClearAudit.addEventListener('click', () => {
+    elements.auditTbody.innerHTML = `
+      <tr class="empty-row" id="audit-empty">
+        <td colspan="5">Gateway ingress audit log cleared.</td>
+      </tr>
+    `;
+  });
 
   function loadOrdersFromStorage() {
     try {
-      const data = localStorage.getItem(STORAGE_KEY);
-      return data ? JSON.parse(data) : [];
+      return JSON.parse(localStorage.getItem(STORAGE_ORDERS_KEY) || '[]');
     } catch {
       return [];
     }
@@ -597,16 +728,14 @@
 
   function saveOrdersToStorage() {
     try {
-      // Keep only latest 100 orders in storage
-      const trimmed = myOrders.slice(0, 100);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
-    } catch (e) {
-      console.warn('LocalStorage error:', e);
+      localStorage.setItem(STORAGE_ORDERS_KEY, JSON.stringify(state.myOrders));
+    } catch {
+      // storage unavailable or full
     }
   }
 
-  // Initialize notional calculation on load
+  // Initialize
+  updateAuthUI();
   updateNotional();
-
+  updateSubmitButton();
 })();
-
