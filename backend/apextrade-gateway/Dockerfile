@@ -21,7 +21,7 @@ COPY apextrade-gateway apextrade-gateway
 RUN mvn clean package -pl apextrade-gateway -am -DskipTests -B \
     && rm -f apextrade-gateway/target/*.original
 
-# Stage 
+# Stage
 FROM eclipse-temurin:25-jre
 WORKDIR /app
 

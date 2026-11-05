@@ -8,9 +8,11 @@
 
   // --- Configuration ---
   const DEFAULT_PORT = 8080;
+  const PROD_HOST = 'apextrade-gateway.onrender.com';
+  const savedHost = localStorage.getItem('apextrade_target_host');
   const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  const API_HOST = isLocal ? `localhost:${DEFAULT_PORT}` : 'apextrade-core-backend.onrender.com';
-  const REST_BASE_URL = isLocal ? `http://${API_HOST}` : `https://${API_HOST}`;
+  const API_HOST = savedHost || (isLocal ? `localhost:${DEFAULT_PORT}` : PROD_HOST);
+  const REST_BASE_URL = API_HOST.includes('localhost') ? `http://${API_HOST}` : `https://${API_HOST}`;
 
   // --- Persistent Storage Keys ---
   const STORAGE_TOKEN_KEY = 'apextrade_jwt';
@@ -33,6 +35,7 @@
     // Top Health Strip
     gatewayDot: document.getElementById('gateway-dot'),
     gatewayStatusText: document.getElementById('gateway-status-text'),
+    btnToggleEnv: document.getElementById('btn-toggle-env'),
 
     // Views
     welcomeView: document.getElementById('welcome-view'),
@@ -167,6 +170,25 @@
       elements.gatewayDot.className = 'status-dot dot-offline';
       elements.gatewayStatusText.textContent = `Gateway Offline - Connection Refused (${REST_BASE_URL})`;
     }
+  }
+
+  // Environment Switcher (Cloud Render vs Localhost)
+  function updateToggleEnvButton() {
+    if (elements.btnToggleEnv) {
+      const isCloud = REST_BASE_URL.includes('onrender.com');
+      elements.btnToggleEnv.textContent = isCloud ? '⚡ Target: Cloud (Render)' : '💻 Target: Localhost';
+      elements.btnToggleEnv.style.color = isCloud ? 'var(--color-buy)' : 'var(--color-accent)';
+    }
+  }
+
+  if (elements.btnToggleEnv) {
+    updateToggleEnvButton();
+    elements.btnToggleEnv.addEventListener('click', () => {
+      const currentlyCloud = REST_BASE_URL.includes('onrender.com');
+      const newHost = currentlyCloud ? `localhost:${DEFAULT_PORT}` : PROD_HOST;
+      localStorage.setItem('apextrade_target_host', newHost);
+      window.location.reload();
+    });
   }
 
   // Poll health immediately and every 10 seconds
