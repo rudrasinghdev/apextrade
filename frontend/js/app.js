@@ -394,24 +394,24 @@
 
   elements.btnSideBuy.addEventListener('click', () => {
     state.activeSide = 'BUY';
-    elements.btnSideBuy.className = 'btn-toggle active-buy';
-    elements.btnSideSell.className = 'btn-toggle';
-    elements.btnSubmitOrder.className = 'btn btn-buy btn-block';
+    elements.btnSideBuy.className = 'side-btn active-buy';
+    elements.btnSideSell.className = 'side-btn';
+    elements.btnSubmitOrder.className = 'btn btn-order-submit btn-buy-cta';
     updateSubmitButton();
   });
 
   elements.btnSideSell.addEventListener('click', () => {
     state.activeSide = 'SELL';
-    elements.btnSideSell.className = 'btn-toggle active-sell';
-    elements.btnSideBuy.className = 'btn-toggle';
-    elements.btnSubmitOrder.className = 'btn btn-sell btn-block';
+    elements.btnSideSell.className = 'side-btn active-sell';
+    elements.btnSideBuy.className = 'side-btn';
+    elements.btnSubmitOrder.className = 'btn btn-order-submit btn-sell-cta';
     updateSubmitButton();
   });
 
   elements.btnTypeLimit.addEventListener('click', () => {
     state.activeOrderType = 'LIMIT';
-    elements.btnTypeLimit.className = 'btn-toggle active';
-    elements.btnTypeMarket.className = 'btn-toggle';
+    elements.btnTypeLimit.className = 'type-btn active';
+    elements.btnTypeMarket.className = 'type-btn';
     elements.inputPrice.disabled = false;
     elements.groupPrice.style.opacity = '1';
     updateSubmitButton();
@@ -420,8 +420,8 @@
 
   elements.btnTypeMarket.addEventListener('click', () => {
     state.activeOrderType = 'MARKET';
-    elements.btnTypeMarket.className = 'btn-toggle active';
-    elements.btnTypeLimit.className = 'btn-toggle';
+    elements.btnTypeMarket.className = 'type-btn active';
+    elements.btnTypeLimit.className = 'type-btn';
     elements.inputPrice.disabled = true;
     elements.groupPrice.style.opacity = '0.4';
     updateSubmitButton();
