@@ -26,24 +26,14 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
-        try {
-            RegisterResponse response = authService.register(req);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest req) {
+        RegisterResponse response = authService.register(req);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest req) {
-        try {
-            LoginResponse response = authService.login(req);
-            return ResponseEntity.ok(response);
-        } catch (BadCredentialsException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req) {
+        LoginResponse response = authService.login(req);
+        return ResponseEntity.ok(response);
     }
 }

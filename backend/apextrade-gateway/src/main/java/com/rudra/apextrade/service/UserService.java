@@ -18,9 +18,8 @@ public class UserService {
     }
 
     @Transactional
-    public User createUser(String username, String email, String passwordHash, String role) {
+    public User createUser(String email, String passwordHash, String role) {
         User user = User.builder()
-                .username(username)
                 .email(email)
                 .passwordHash(passwordHash)
                 .role(role)
@@ -30,33 +29,22 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<User> findById(long userId) {
-        return userRepository.findById(userId);
-    }
-
-    @Transactional(readOnly = true)
-    public Optional<User> findByUsername(String username) {
-        return userRepository.findByUsername(username);
-    }
-
-    @Transactional(readOnly = true)
-    public boolean existsByUsername(String username) {
-        return userRepository.existsByUsername(username);
-    }
-
-    @Transactional(readOnly = true)
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
     }
 
     @Transactional(readOnly = true)
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+    @Transactional(readOnly = true)
     public UserProfileResponse getProfile(long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+                .orElseThrow(() -> new com.rudra.apextrade.exception.UserNotFoundException("User not found: " + userId));
 
         return new UserProfileResponse(
-                user.getId(),
-                user.getUsername(),
+                user.getUserId(),
                 user.getEmail(),
                 user.getRole(),
                 user.getCreatedAt()

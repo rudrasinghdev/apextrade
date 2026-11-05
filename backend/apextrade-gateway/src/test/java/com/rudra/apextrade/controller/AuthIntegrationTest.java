@@ -19,6 +19,7 @@ import org.springframework.web.context.WebApplicationContext;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -40,14 +41,13 @@ class AuthIntegrationTest {
     }
 
     @Test
-    @DisplayName("End-to-End: Register -> Login -> Verify Authenticated Profile")
+    @DisplayName("End-to-End: Register (No Token) -> Login (Mint Token) -> Verify Authenticated Profile")
     void testRegisterLoginAndProfileFlow() throws Exception {
-        String username = "trader_alice_" + System.currentTimeMillis();
-        String email = username + "@apextrade.io";
+        String email = "trader_alice_" + System.currentTimeMillis() + "@apextrade.io";
         String password = "StrongPassword123!";
 
-        // 1. Register new trader
-        RegisterRequest registerReq = new RegisterRequest(username, email, password);
+        // 1. Register new trader (Must NOT issue a token)
+        RegisterRequest registerReq = new RegisterRequest(email, password);
         MvcResult registerResult = mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerReq)))
@@ -55,19 +55,20 @@ class AuthIntegrationTest {
                 .andReturn();
 
         JsonNode registerJson = objectMapper.readTree(registerResult.getResponse().getContentAsString());
-        String token = registerJson.get("token").asText();
+        assertEquals(email, registerJson.get("email").asText());
         long userId = registerJson.get("userId").asLong();
-        assertNotNull(token);
         assertTrue(userId > 0);
+        assertNull(registerJson.get("token"), "Register must not issue a session token");
 
-        // 2. Duplicate registration rejected with HTTP 400
+        // 2. Duplicate registration rejected with HTTP 400 Bad Request
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerReq)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("USER_ALREADY_EXISTS"));
 
-        // 3. Login with correct credentials
-        LoginRequest loginReq = new LoginRequest(username, password);
+        // 3. Login with correct credentials (Mints session token)
+        LoginRequest loginReq = new LoginRequest(email, password);
         MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginReq)))
@@ -77,13 +78,16 @@ class AuthIntegrationTest {
         JsonNode loginJson = objectMapper.readTree(loginResult.getResponse().getContentAsString());
         String loginToken = loginJson.get("token").asText();
         assertNotNull(loginToken);
+        assertEquals(userId, loginJson.get("userId").asLong());
+        assertEquals(email, loginJson.get("email").asText());
 
         // 4. Login with incorrect password rejected with HTTP 401
-        LoginRequest badLoginReq = new LoginRequest(username, "wrongPassword");
+        LoginRequest badLoginReq = new LoginRequest(email, "wrongPassword");
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(badLoginReq)))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("UNAUTHORIZED"));
 
         // 5. Access protected /api/users/me endpoint with Bearer token
         MvcResult meResult = mockMvc.perform(get("/api/users/me")
@@ -92,7 +96,7 @@ class AuthIntegrationTest {
                 .andReturn();
 
         JsonNode meJson = objectMapper.readTree(meResult.getResponse().getContentAsString());
-        assertEquals(username, meJson.get("username").asText());
+        assertEquals(userId, meJson.get("userId").asLong());
         assertEquals(email, meJson.get("email").asText());
 
         // 6. Access protected /api/users/me endpoint without token rejected with HTTP 401 Unauthorized

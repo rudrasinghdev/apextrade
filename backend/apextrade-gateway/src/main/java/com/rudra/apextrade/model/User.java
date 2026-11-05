@@ -3,10 +3,6 @@ package com.rudra.apextrade.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-/**
- * Persistent user entity for Zone 1 Edge Authentication.
- * Quarantined strictly to the Cold Path.
- */
 @Entity
 @Table(name = "users")
 @Getter
@@ -18,10 +14,7 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(unique = true, nullable = false, length = 50)
-    private String username;
+    private Long userId;
 
     @Column(unique = true, nullable = false, length = 100)
     private String email;
