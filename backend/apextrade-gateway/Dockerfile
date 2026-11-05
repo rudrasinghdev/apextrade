@@ -14,13 +14,14 @@ COPY .mvn .mvn
 COPY mvnw .
 COPY mvnw.cmd .
 COPY apextrade-common apextrade-common
+COPY apextrade-engine apextrade-engine
 COPY apextrade-gateway apextrade-gateway
 
 # Package only apextrade-gateway and also-make apextrade-common (engine is excluded)
 RUN mvn clean package -pl apextrade-gateway -am -DskipTests -B \
     && rm -f apextrade-gateway/target/*.original
 
-# Stage 2: Minimal Temurin 25 JRE runtime image
+# Stage 
 FROM eclipse-temurin:25-jre
 WORKDIR /app
 
