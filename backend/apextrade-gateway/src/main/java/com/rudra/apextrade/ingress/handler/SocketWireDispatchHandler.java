@@ -8,11 +8,6 @@ import com.rudra.apextrade.ingress.event.OrderCommandEvent;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-/**
- * Single-threaded socket serializer handler running on Gateway's carrier thread.
- * Drains Gateway's MPSC Ingress RingBuffer and encodes events into binary wire frames.
- * Provides micro-batching via endOfBatch signal.
- */
 public class SocketWireDispatchHandler implements EventHandler<OrderCommandEvent> {
 
     private final ByteBuffer directBuffer = ByteBuffer.allocateDirect(1024 * 64);

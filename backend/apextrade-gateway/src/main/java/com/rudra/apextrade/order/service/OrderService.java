@@ -1,13 +1,12 @@
 package com.rudra.apextrade.order.service;
 
-import com.rudra.apextrade.account.model.Account;
+import com.rudra.apextrade.account.exception.InsufficientFundsException;
 import com.rudra.apextrade.account.service.AccountLedger;
 import com.rudra.apextrade.common.Side;
-import com.rudra.apextrade.account.exception.InsufficientFundsException;
-import com.rudra.apextrade.order.exception.OrderNotFoundException;
 import com.rudra.apextrade.ingress.publisher.OrderCommandPublisher;
 import com.rudra.apextrade.order.dto.OrderRequest;
 import com.rudra.apextrade.order.dto.OrderResponse;
+import com.rudra.apextrade.order.exception.OrderNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
@@ -29,12 +28,9 @@ public class OrderService {
         long orderId = orderIdSequence.getAndIncrement();
         long timestampNs = System.nanoTime();
 
-        Account account = ledger.getAccount(userId);
-
-        // Pre-Trade Margin & Inventory Reservation (< 15 ns in RAM)
         if (req.side() == Side.BUY) {
             long requiredUsd = req.price() * req.quantity();
-            boolean success = account.placeBuyOrder(orderId, requiredUsd);
+            boolean success = ledger.reserveBuyMargin(userId, orderId, requiredUsd);
             if (!success) {
                 throw new InsufficientFundsException(
                         "Insufficient USD balance: required " + requiredUsd + " USD to place BUY order."
@@ -42,7 +38,7 @@ public class OrderService {
             }
         } else if (req.side() == Side.SELL) {
             long requiredBtc = req.quantity();
-            boolean success = account.placeSellOrder(orderId, requiredBtc);
+            boolean success = ledger.reserveSellMargin(userId, orderId, requiredBtc);
             if (!success) {
                 throw new InsufficientFundsException(
                         "Insufficient BTC balance: required " + requiredBtc + " BTC to place SELL order."
@@ -50,7 +46,6 @@ public class OrderService {
             }
         }
 
-        // Publish to MPSC Ingress RingBuffer
         publisher.publishPlaceOrder(
                 orderId,
                 userId,
@@ -67,20 +62,16 @@ public class OrderService {
     public OrderResponse cancelOrder(long userId, long orderId) {
         long timestampNs = System.nanoTime();
 
-        Account account = ledger.getAccount(userId);
-        boolean cancelled = account.cancelOrder(orderId);
-
+        boolean cancelled = ledger.cancelOrder(userId, orderId);
         if (!cancelled) {
             throw new OrderNotFoundException("Order #" + orderId + " not found or does not belong to trader #" + userId);
         }
 
         publisher.publishCancelOrder(orderId, userId, timestampNs);
-
         return OrderResponse.accepted(orderId, timestampNs);
     }
 
     public Set<Long> getActiveOrderIds(long userId) {
-        return ledger.getAccount(userId).getActiveOrderIds();
+        return ledger.getActiveOrderIds(userId);
     }
 }
-

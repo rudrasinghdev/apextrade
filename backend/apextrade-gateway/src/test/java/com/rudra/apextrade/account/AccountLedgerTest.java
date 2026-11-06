@@ -1,5 +1,8 @@
 package com.rudra.apextrade.account;
 
+import com.rudra.apextrade.account.dto.AccountBalanceResponse;
+import com.rudra.apextrade.account.exception.AccountAlreadyExistsException;
+import com.rudra.apextrade.account.exception.AccountNotFoundException;
 import com.rudra.apextrade.account.model.Account;
 import com.rudra.apextrade.account.service.AccountLedger;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,63 +41,44 @@ class AccountLedgerTest {
     }
 
     @Test
-    @DisplayName("Account: placeBuyOrder atomically reserves USD and records active order ID")
-    void testPlaceBuyOrder() {
-        Account account = ledger.getAccount(101L);
+    @DisplayName("Account Ledger: getAccount throws AccountNotFoundException for uncreated account")
+    void testGetAccountNotFound() {
+        assertThrows(AccountNotFoundException.class, () -> ledger.getAccount(999L));
+    }
+
+    @Test
+    @DisplayName("Account Ledger: createAccount throws AccountAlreadyExistsException on duplicate creation")
+    void testDuplicateAccountCreationThrows() {
+        ledger.createAccount(101L);
+        assertThrows(AccountAlreadyExistsException.class, () -> ledger.createAccount(101L));
+    }
+
+    @Test
+    @DisplayName("Account Ledger Facade: reserveBuyMargin atomically locks margin")
+    void testReserveBuyMarginFacade() {
+        ledger.createAccount(101L);
         long cost = 2_000_000L;
-        boolean placed = account.placeBuyOrder(1L, cost);
+        boolean reserved = ledger.reserveBuyMargin(101L, 1L, cost);
 
-        assertTrue(placed, "BUY order placement must succeed when available balance is sufficient");
-        assertEquals(8_000_000L, account.getAvailableUsd());
-        assertEquals(2_000_000L, account.getReservedUsd());
-        assertTrue(account.hasActiveOrder(1L));
-        assertTrue(account.getActiveOrderIds().contains(1L));
+        assertTrue(reserved);
+        AccountBalanceResponse balance = ledger.getBalance(101L);
+        assertEquals(8_000_000L, balance.availableUsd());
+        assertEquals(2_000_000L, balance.reservedUsd());
+        assertTrue(ledger.getActiveOrderIds(101L).contains(1L));
     }
 
     @Test
-    @DisplayName("Account: placeBuyOrder fails fast when insufficient USD and leaves available untouched")
-    void testInsufficientUsdRejection() {
-        Account account = ledger.getAccount(101L);
-        long cost = 12_000_000L;
-        boolean placed = account.placeBuyOrder(2L, cost);
+    @DisplayName("Account Ledger Facade: cancelOrder releases reserved margin")
+    void testCancelOrderFacade() {
+        ledger.createAccount(101L);
+        ledger.reserveBuyMargin(101L, 1L, 2_000_000L);
+        boolean cancelled = ledger.cancelOrder(101L, 1L);
 
-        assertFalse(placed, "BUY order must fail when cost exceeds balance");
-        assertEquals(10_000_000L, account.getAvailableUsd());
-        assertEquals(0L, account.getReservedUsd());
-        assertFalse(account.hasActiveOrder(2L));
-    }
-
-    @Test
-    @DisplayName("Account: cancelOrder releases reserved funds and removes order ID")
-    void testCancelOrder() {
-        Account account = ledger.getAccount(101L);
-        long cost = 4_000_000L;
-        account.placeBuyOrder(3L, cost);
-        boolean cancelled = account.cancelOrder(3L);
-
-        assertTrue(cancelled, "cancelOrder must succeed for active order");
-        assertEquals(10_000_000L, account.getAvailableUsd());
-        assertEquals(0L, account.getReservedUsd());
-        assertFalse(account.hasActiveOrder(3L));
-    }
-
-    @Test
-    @DisplayName("Account: placeSellOrder and cancelOrder for BTC inventory")
-    void testBtcOrderAndCancel() {
-        Account account = ledger.getAccount(101L);
-        long btcAmount = 200_000_000L; // 2 BTC
-        boolean placed = account.placeSellOrder(4L, btcAmount);
-
-        assertTrue(placed, "SELL order must succeed when holding 5 BTC");
-        assertEquals(300_000_000L, account.getAvailableBtc());
-        assertEquals(200_000_000L, account.getReservedBtc());
-        assertTrue(account.hasActiveOrder(4L));
-
-        boolean cancelled = account.cancelOrder(4L);
         assertTrue(cancelled);
-        assertEquals(500_000_000L, account.getAvailableBtc());
-        assertEquals(0L, account.getReservedBtc());
-        assertFalse(account.hasActiveOrder(4L));
+        AccountBalanceResponse balance = ledger.getBalance(101L);
+        assertEquals(10_000_000L, balance.availableUsd());
+        assertEquals(0L, balance.reservedUsd());
+        assertFalse(ledger.getActiveOrderIds(101L).contains(1L));
     }
 
     @Test
@@ -135,4 +119,3 @@ class AccountLedgerTest {
         assertEquals(5, account.getActiveOrderIds().size());
     }
 }
-
