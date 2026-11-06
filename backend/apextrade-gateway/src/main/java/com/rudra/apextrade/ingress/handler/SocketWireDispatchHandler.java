@@ -4,6 +4,7 @@ import com.lmax.disruptor.EventHandler;
 import com.rudra.apextrade.common.CommandType;
 import com.rudra.apextrade.common.OrderWireCodec;
 import com.rudra.apextrade.ingress.event.OrderCommandEvent;
+import lombok.Setter;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
@@ -11,15 +12,18 @@ import java.nio.channels.SocketChannel;
 public class SocketWireDispatchHandler implements EventHandler<OrderCommandEvent> {
 
     private final ByteBuffer directBuffer = ByteBuffer.allocateDirect(1024 * 64);
-    private final SocketChannel socketChannel;
+
+    @Setter
+    private volatile SocketChannel socketChannel;
     private long processedCount = 0;
 
     public SocketWireDispatchHandler() {
         this.socketChannel = null;
     }
 
-    public SocketWireDispatchHandler(SocketChannel socketChannel) {
-        this.socketChannel = socketChannel;
+    public boolean isConnected() {
+        SocketChannel channel = this.socketChannel;
+        return channel != null && channel.isOpen() && channel.isConnected();
     }
 
     @Override
@@ -50,9 +54,10 @@ public class SocketWireDispatchHandler implements EventHandler<OrderCommandEvent
 
         if (endOfBatch) {
             directBuffer.flip();
-            if (socketChannel != null && socketChannel.isOpen()) {
+            SocketChannel channel = this.socketChannel;
+            if (channel != null && channel.isOpen() && channel.isConnected()) {
                 while (directBuffer.hasRemaining()) {
-                    socketChannel.write(directBuffer);
+                    channel.write(directBuffer);
                 }
             }
             directBuffer.clear();
