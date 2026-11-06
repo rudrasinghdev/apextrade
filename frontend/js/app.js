@@ -564,7 +564,6 @@
     }
 
     const payload = {
-      userId: state.user.userId,
       side: state.activeSide,
       price: price,
       quantity: qty,
@@ -659,7 +658,6 @@
     const buyRes = await apiRequest('/api/v1/orders', {
       method: 'POST',
       body: JSON.stringify({
-        userId: state.user.userId,
         side: 'BUY',
         price: testPrice,
         quantity: testQty,
@@ -688,7 +686,6 @@
     const sellRes = await apiRequest('/api/v1/orders', {
       method: 'POST',
       body: JSON.stringify({
-        userId: state.user.userId,
         side: 'SELL',
         price: testPrice,
         quantity: testQty,

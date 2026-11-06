@@ -1,7 +1,0 @@
-package com.rudra.apextrade.dto;
-
-public record UserProfileResponse(
-        long userId,
-        String email,
-        long createdAt
-) {}
