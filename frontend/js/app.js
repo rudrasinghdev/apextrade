@@ -10,7 +10,9 @@
   const DEFAULT_PORT = 8080;
   const PROD_HOST = 'apextrade-gateway.onrender.com';
   const savedHost = localStorage.getItem('apextrade_target_host');
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const isLocal = window.location.hostname === 'localhost' ||
+                  window.location.hostname === '127.0.0.1' ||
+                  window.location.hostname === '';
   const API_HOST = savedHost || (isLocal ? `localhost:${DEFAULT_PORT}` : PROD_HOST);
   const REST_BASE_URL = API_HOST.includes('localhost') ? `http://${API_HOST}` : `https://${API_HOST}`;
 
@@ -18,6 +20,10 @@
   const STORAGE_TOKEN_KEY = 'apextrade_jwt';
   const STORAGE_USER_KEY = 'apextrade_user';
   const STORAGE_ORDERS_KEY = 'apextrade_active_orders';
+
+  function getOrdersStorageKey() {
+    return state.user && state.user.userId ? `${STORAGE_ORDERS_KEY}_${state.user.userId}` : STORAGE_ORDERS_KEY;
+  }
 
   // --- Application State ---
   const state = {
@@ -27,9 +33,10 @@
     gatewayOnline: false,
     activeSide: 'BUY',
     activeOrderType: 'LIMIT',
-    myOrders: loadOrdersFromStorage(),
+    myOrders: [],
     auditLogs: []
   };
+  state.myOrders = loadOrdersFromStorage();
 
   // --- DOM Elements ---
   const elements = {
@@ -145,6 +152,11 @@
         data = await response.json();
       }
 
+      if (response.status === 401 && state.token && !options.skipAuth) {
+        handleLogout();
+        setAuthAlert('error', 'Session expired. Please sign in again.');
+      }
+
       return {
         ok: response.ok,
         status: response.status,
@@ -253,7 +265,10 @@
 
   function updateAuthUI() {
     if (state.token && state.user) {
+      state.myOrders = loadOrdersFromStorage();
+      renderMyOrders();
       fetchBalance();
+      syncActiveOrders();
 
       // User is logged in -> show Launchpad, hide Auth Box
       elements.authContainer.classList.add('hidden');
@@ -268,6 +283,9 @@
       elements.terminalUserEmail.textContent = state.user.email;
       elements.terminalUserId.textContent = `#${state.user.userId}`;
     } else {
+      state.myOrders = [];
+      renderMyOrders();
+
       // User is logged out -> show Auth Box, hide Launchpad
       elements.launchpadContainer.classList.add('hidden');
       elements.authContainer.classList.remove('hidden');
@@ -420,6 +438,8 @@
   function handleLogout() {
     state.token = null;
     state.user = null;
+    state.balance = null;
+    state.myOrders = [];
     sessionStorage.removeItem(STORAGE_TOKEN_KEY);
     sessionStorage.removeItem(STORAGE_USER_KEY);
     logAudit('LOGOUT', 200, 0, 'User logged out and session cleared.');
@@ -435,6 +455,7 @@
     elements.welcomeView.classList.add('hidden');
     elements.terminalView.classList.remove('hidden');
     fetchBalance();
+    syncActiveOrders();
     renderMyOrders();
     logAudit('UPGRADE_TERMINAL', 200, 0, 'Entered Trading Terminal. WebSocket stream held in standby.');
   });
@@ -519,7 +540,7 @@
   elements.inputQty.addEventListener('input', updateNotional);
 
   // Quick Presets
-  document.querySelectorAll('.btn-preset').forEach(btn => {
+  document.querySelectorAll('.preset-tag, .btn-preset').forEach(btn => {
     btn.addEventListener('click', () => {
       if (btn.dataset.priceOffset !== undefined) {
         const offset = Number(btn.dataset.priceOffset);
@@ -533,11 +554,21 @@
     });
   });
 
+  let bannerTimeout = null;
   function showBanner(type, title, desc) {
+    if (bannerTimeout) {
+      clearTimeout(bannerTimeout);
+      bannerTimeout = null;
+    }
     elements.statusBanner.className = `status-banner banner-${type}`;
     elements.bannerTitle.textContent = title;
     elements.bannerDesc.textContent = desc;
     elements.statusBanner.classList.remove('hidden');
+
+    bannerTimeout = setTimeout(() => {
+      elements.statusBanner.classList.add('hidden');
+      bannerTimeout = null;
+    }, 6000);
   }
 
   // ==========================================================================
@@ -638,6 +669,26 @@
       const errMsg = res.data?.message || res.data?.error || `Unable to cancel #${orderId}`;
       showBanner('error', 'CANCEL FAILED', errMsg);
       logAudit('CANCEL_FAILED', res.status, res.elapsedMs, errMsg);
+    }
+  }
+
+  // Active Orders Synchronization with Gateway Ledger
+  async function syncActiveOrders() {
+    if (!state.token || !state.user) return;
+    const res = await apiRequest('/api/v1/orders');
+    if (res.ok && Array.isArray(res.data)) {
+      const activeIds = new Set(res.data);
+      let changed = false;
+      state.myOrders.forEach(o => {
+        if (!activeIds.has(o.orderId) && o.status === 'QUEUED') {
+          o.status = 'CANCELLED';
+          changed = true;
+        }
+      });
+      if (changed) {
+        saveOrdersToStorage();
+        renderMyOrders();
+      }
     }
   }
 
@@ -769,8 +820,9 @@
   });
 
   function logAudit(event, httpStatus, latencyMs, details) {
-    if (elements.auditEmpty && elements.auditEmpty.parentNode) {
-      elements.auditEmpty.remove();
+    const emptyRow = elements.auditTbody.querySelector('.empty-row');
+    if (emptyRow) {
+      emptyRow.remove();
     }
 
     const tr = document.createElement('tr');
@@ -801,7 +853,8 @@
 
   function loadOrdersFromStorage() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_ORDERS_KEY) || '[]');
+      const key = getOrdersStorageKey();
+      return JSON.parse(localStorage.getItem(key) || '[]');
     } catch {
       return [];
     }
@@ -809,7 +862,8 @@
 
   function saveOrdersToStorage() {
     try {
-      localStorage.setItem(STORAGE_ORDERS_KEY, JSON.stringify(state.myOrders));
+      const key = getOrdersStorageKey();
+      localStorage.setItem(key, JSON.stringify(state.myOrders));
     } catch {
       // storage unavailable or full
     }
