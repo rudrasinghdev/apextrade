@@ -4,6 +4,7 @@ import com.rudra.apextrade.dto.UserProfileResponse;
 import com.rudra.apextrade.exception.UserNotFoundException;
 import com.rudra.apextrade.model.User;
 import com.rudra.apextrade.repository.UserRepository;
+import com.rudra.apextrade.risk.service.UserAccountLedger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,20 +14,23 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final UserAccountLedger userAccountLedger;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, UserAccountLedger userAccountLedger) {
         this.userRepository = userRepository;
+        this.userAccountLedger = userAccountLedger;
     }
 
     @Transactional
-    public User createUser(String email, String passwordHash, String role) {
+    public User createUser(String email, String passwordHash) {
         User user = User.builder()
                 .email(email)
                 .passwordHash(passwordHash)
-                .role(role)
                 .createdAt(System.currentTimeMillis())
                 .build();
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        userAccountLedger.createAccount(savedUser.getUserId());
+        return savedUser;
     }
 
     @Transactional(readOnly = true)
@@ -47,9 +51,7 @@ public class UserService {
         return new UserProfileResponse(
                 user.getUserId(),
                 user.getEmail(),
-                user.getRole(),
                 user.getCreatedAt()
         );
     }
 }
-

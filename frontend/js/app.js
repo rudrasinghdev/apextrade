@@ -23,6 +23,7 @@
   const state = {
     token: sessionStorage.getItem(STORAGE_TOKEN_KEY) || null,
     user: JSON.parse(sessionStorage.getItem(STORAGE_USER_KEY) || 'null'),
+    balance: null,
     gatewayOnline: false,
     activeSide: 'BUY',
     activeOrderType: 'LIMIT',
@@ -61,12 +62,16 @@
     lpUserId: document.getElementById('lp-user-id'),
     lpUserRole: document.getElementById('lp-user-role'),
     lpTokenSnippet: document.getElementById('lp-token-snippet'),
+    lpAvailableUsd: document.getElementById('lp-available-usd'),
+    lpAvailableBtc: document.getElementById('lp-available-btc'),
     btnUpgradeTerminal: document.getElementById('btn-upgrade-terminal'),
     btnLogout: document.getElementById('btn-logout'),
 
     // Terminal Navbar
     terminalUserEmail: document.getElementById('terminal-user-email'),
     terminalUserId: document.getElementById('terminal-user-id'),
+    terminalBalanceUsd: document.getElementById('terminal-balance-usd'),
+    terminalBalanceBtc: document.getElementById('terminal-balance-btc'),
     btnBackLaunchpad: document.getElementById('btn-back-launchpad'),
     btnTerminalLogout: document.getElementById('btn-terminal-logout'),
     latencyDisplay: document.getElementById('latency-display'),
@@ -83,6 +88,8 @@
     groupPrice: document.getElementById('group-price'),
     btnSubmitOrder: document.getElementById('btn-submit-order'),
     summaryNotional: document.getElementById('summary-notional'),
+    formMarginLabel: document.getElementById('form-margin-label'),
+    formAvailableMargin: document.getElementById('form-available-margin'),
     statusBanner: document.getElementById('order-status-banner'),
     bannerTitle: document.getElementById('banner-title'),
     bannerDesc: document.getElementById('banner-desc'),
@@ -196,11 +203,58 @@
   setInterval(checkGatewayHealth, 10000);
 
   // ==========================================================================
+  // Dual-Asset Risk Ledger Synchronization
+  // ==========================================================================
+
+  function formatUsd(amount) {
+    if (amount === undefined || amount === null) return '$0.00';
+    return '$' + (amount / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function formatBtc(amount) {
+    if (amount === undefined || amount === null) return '0.00000000 BTC';
+    return (amount / 100_000_000).toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 }) + ' BTC';
+  }
+
+  async function fetchBalance() {
+    if (!state.token) return;
+    const res = await apiRequest('/api/users/balance');
+    if (res.ok && res.data) {
+      state.balance = res.data;
+      updateBalanceUI();
+    }
+  }
+
+  function updateBalanceUI() {
+    if (!state.balance) return;
+
+    const usdStr = formatUsd(state.balance.availableUsd);
+    const btcStr = formatBtc(state.balance.availableBtc);
+
+    if (elements.lpAvailableUsd) elements.lpAvailableUsd.textContent = usdStr;
+    if (elements.lpAvailableBtc) elements.lpAvailableBtc.textContent = btcStr;
+    if (elements.terminalBalanceUsd) elements.terminalBalanceUsd.textContent = usdStr;
+    if (elements.terminalBalanceBtc) elements.terminalBalanceBtc.textContent = btcStr;
+
+    if (elements.formAvailableMargin && elements.formMarginLabel) {
+      if (state.activeSide === 'BUY') {
+        elements.formMarginLabel.textContent = 'Required USD Margin:';
+        elements.formAvailableMargin.textContent = `Available: ${usdStr}`;
+      } else {
+        elements.formMarginLabel.textContent = 'Required BTC Holding:';
+        elements.formAvailableMargin.textContent = `Available: ${btcStr}`;
+      }
+    }
+  }
+
+  // ==========================================================================
   // Auth & Session Management
   // ==========================================================================
 
   function updateAuthUI() {
     if (state.token && state.user) {
+      fetchBalance();
+
       // User is logged in -> show Launchpad, hide Auth Box
       elements.authContainer.classList.add('hidden');
       elements.launchpadContainer.classList.remove('hidden');
@@ -359,6 +413,7 @@
       elements.lpUserRole.textContent = res.data.role || 'ROLE_TRADER';
       elements.lpUserId.textContent = `#${res.data.userId}`;
     }
+    await fetchBalance();
   }
 
   // Logout Handlers
@@ -379,6 +434,7 @@
     // Switch to Terminal View (No active WS connection per specification)
     elements.welcomeView.classList.add('hidden');
     elements.terminalView.classList.remove('hidden');
+    fetchBalance();
     renderMyOrders();
     logAudit('UPGRADE_TERMINAL', 200, 0, 'Entered Trading Terminal. WebSocket stream held in standby.');
   });
@@ -398,6 +454,7 @@
     elements.btnSideSell.className = 'side-btn';
     elements.btnSubmitOrder.className = 'btn btn-order-submit btn-buy-cta';
     updateSubmitButton();
+    updateBalanceUI();
   });
 
   elements.btnSideSell.addEventListener('click', () => {
@@ -406,6 +463,7 @@
     elements.btnSideBuy.className = 'side-btn';
     elements.btnSubmitOrder.className = 'btn btn-order-submit btn-sell-cta';
     updateSubmitButton();
+    updateBalanceUI();
   });
 
   elements.btnTypeLimit.addEventListener('click', () => {
@@ -550,10 +608,12 @@
         res.elapsedMs,
         `${state.activeSide} ${state.activeOrderType} #${res.data.orderId} - ${qty} @ ${price}`
       );
+      fetchBalance();
     } else {
       const errMsg = res.data?.message || res.data?.error || res.error || 'Order rejected by Gateway.';
       showBanner('error', 'ORDER REJECTED BY GATEWAY', errMsg);
       logAudit('ORDER_REJECTED', res.status, res.elapsedMs, errMsg);
+      fetchBalance();
     }
   });
 
@@ -574,6 +634,7 @@
         renderMyOrders();
       }
       logAudit('ORDER_CANCELLED', res.status, res.elapsedMs, `Order #${orderId} cancelled`);
+      fetchBalance();
     } else {
       const errMsg = res.data?.message || res.data?.error || `Unable to cancel #${orderId}`;
       showBanner('error', 'CANCEL FAILED', errMsg);
@@ -651,6 +712,7 @@
 
     saveOrdersToStorage();
     renderMyOrders();
+    fetchBalance();
 
     showBanner('success', 'CROSS TEST INGESTED', 'Injected BUY and SELL order pair into Disruptor RingBuffer.');
     elements.btnDemoCross.disabled = false;

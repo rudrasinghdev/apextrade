@@ -22,9 +22,6 @@ public class User {
     @Column(nullable = false)
     private String passwordHash;
 
-    @Column(nullable = false, length = 20)
-    private String role;
-
     @Column(nullable = false)
     private long createdAt;
 }

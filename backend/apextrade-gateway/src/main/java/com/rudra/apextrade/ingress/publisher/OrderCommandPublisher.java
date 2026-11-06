@@ -6,9 +6,6 @@ import com.rudra.apextrade.common.OrderType;
 import com.rudra.apextrade.common.Side;
 import com.rudra.apextrade.ingress.event.OrderCommandEvent;
 
-/**
- * Thread-safe multi-producer publisher injecting order commands into Gateway's Ingress RingBuffer.
- */
 public class OrderCommandPublisher {
 
     private final RingBuffer<OrderCommandEvent> ringBuffer;
@@ -33,10 +30,6 @@ public class OrderCommandPublisher {
         } finally {
             ringBuffer.publish(sequence);
         }
-    }
-
-    public void publishCancelOrder(long orderId, long timestamp) {
-        publishCancelOrder(orderId, 0L, timestamp);
     }
 
     public void publishCancelOrder(long orderId, long userId, long timestamp) {

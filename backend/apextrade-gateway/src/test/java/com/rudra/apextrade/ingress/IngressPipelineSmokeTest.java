@@ -2,7 +2,7 @@ package com.rudra.apextrade.ingress;
 
 import com.rudra.apextrade.common.OrderType;
 import com.rudra.apextrade.common.Side;
-import com.rudra.apextrade.ingress.handler.GatewayOrderCommandHandler;
+import com.rudra.apextrade.ingress.handler.SocketWireDispatchHandler;
 import com.rudra.apextrade.ingress.publisher.OrderCommandPublisher;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,7 +20,7 @@ class IngressPipelineSmokeTest {
     private OrderCommandPublisher publisher;
 
     @Autowired
-    private GatewayOrderCommandHandler handler;
+    private SocketWireDispatchHandler handler;
 
     private void waitUntil(Runnable assertion, long timeoutMs) throws InterruptedException {
         long deadline = System.currentTimeMillis() + timeoutMs;

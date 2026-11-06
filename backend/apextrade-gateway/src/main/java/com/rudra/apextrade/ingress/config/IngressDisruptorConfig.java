@@ -1,4 +1,4 @@
-package com.rudra.apextrade.config;
+package com.rudra.apextrade.ingress.config;
 
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.YieldingWaitStrategy;
@@ -6,7 +6,7 @@ import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import com.rudra.apextrade.ingress.event.OrderCommandEvent;
 import com.rudra.apextrade.ingress.event.OrderCommandEventFactory;
-import com.rudra.apextrade.ingress.handler.GatewayOrderCommandHandler;
+import com.rudra.apextrade.ingress.handler.SocketWireDispatchHandler;
 import com.rudra.apextrade.ingress.publisher.OrderCommandPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,14 +24,14 @@ public class IngressDisruptorConfig {
     }
 
     @Bean
-    public GatewayOrderCommandHandler gatewayOrderCommandHandler() {
-        return new GatewayOrderCommandHandler();
+    public SocketWireDispatchHandler socketWireDispatchHandler() {
+        return new SocketWireDispatchHandler();
     }
 
     @Bean(destroyMethod = "shutdown")
     public Disruptor<OrderCommandEvent> disruptor(
             OrderCommandEventFactory factory,
-            GatewayOrderCommandHandler handler
+            SocketWireDispatchHandler handler
     ) {
         ThreadFactory threadFactory = runnable -> {
             Thread thread = new Thread(runnable, "gateway-socket-thread");

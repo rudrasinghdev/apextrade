@@ -52,12 +52,13 @@ public class OrderController {
     }
 
     @DeleteMapping("/{orderId}")
-    public ResponseEntity<OrderResponse> cancelOrder(@PathVariable long orderId) {
+    public ResponseEntity<OrderResponse> cancelOrder(@AuthenticationPrincipal UserPrincipal principal,
+                                                     @PathVariable("orderId") long orderId) {
         if (orderId <= 0) {
             throw new InvalidOrderException("Invalid orderId: " + orderId);
         }
 
-        OrderResponse response = orderService.cancelOrder(orderId);
+        OrderResponse response = orderService.cancelOrder(principal.userId(), orderId);
         return ResponseEntity.ok(response);
     }
 }

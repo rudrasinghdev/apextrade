@@ -43,7 +43,7 @@ public class AuthService {
         }
 
         String passwordHash = passwordEncoder.encode(req.password());
-        User user = userService.createUser(email, passwordHash, "TRADER");
+        User user = userService.createUser(email, passwordHash);
 
         return new RegisterResponse(user.getEmail(), user.getUserId());
     }

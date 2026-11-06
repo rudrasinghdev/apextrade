@@ -35,7 +35,6 @@ public class JwtService {
         return Jwts.builder()
                 .subject(email)
                 .claim("userId", userId)
-                .claim("role", "USER")
                 .issuedAt(new Date(now))
                 .expiration(new Date(now + expirationMs))
                 .signWith(key)
@@ -47,9 +46,8 @@ public class JwtService {
             Claims claims = jwtParser.parseSignedClaims(token).getPayload();
             String email = claims.getSubject();
             long userId = claims.get("userId", Number.class).longValue();
-            String role = claims.get("role", String.class);
 
-            return Optional.of(new UserPrincipal(userId, email, role));
+            return Optional.of(new UserPrincipal(userId, email));
         } catch (JwtException | IllegalArgumentException e) {
             return Optional.empty();
         }

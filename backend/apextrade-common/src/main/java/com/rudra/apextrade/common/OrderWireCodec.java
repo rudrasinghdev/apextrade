@@ -39,8 +39,8 @@ public final class OrderWireCodec {
         buffer.put(MSG_TYPE_NEW_ORDER);
         buffer.put((byte) (side == Side.BUY ? 0 : 1));
         buffer.put((byte) (orderType == OrderType.LIMIT ? 0 : 1));
-        buffer.put((byte) 0); // pad 1
-        buffer.putShort((short) 0); // pad 2 & 3
+        buffer.put((byte) 0);
+        buffer.putShort((short) 0);
         buffer.putLong(orderId);
         buffer.putInt(userId);
         buffer.putLong(price);

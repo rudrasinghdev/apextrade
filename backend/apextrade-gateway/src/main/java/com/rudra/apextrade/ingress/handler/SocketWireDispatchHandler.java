@@ -6,16 +6,26 @@ import com.rudra.apextrade.common.OrderWireCodec;
 import com.rudra.apextrade.ingress.event.OrderCommandEvent;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 
 /**
  * Single-threaded socket serializer handler running on Gateway's carrier thread.
- * Drains Gateway's MPSC Ingress RingBuffer and encodes events into wire frames.
+ * Drains Gateway's MPSC Ingress RingBuffer and encodes events into binary wire frames.
  * Provides micro-batching via endOfBatch signal.
  */
-public class GatewayOrderCommandHandler implements EventHandler<OrderCommandEvent> {
+public class SocketWireDispatchHandler implements EventHandler<OrderCommandEvent> {
 
     private final ByteBuffer directBuffer = ByteBuffer.allocateDirect(1024 * 64);
+    private final SocketChannel socketChannel;
     private long processedCount = 0;
+
+    public SocketWireDispatchHandler() {
+        this.socketChannel = null;
+    }
+
+    public SocketWireDispatchHandler(SocketChannel socketChannel) {
+        this.socketChannel = socketChannel;
+    }
 
     @Override
     public void onEvent(OrderCommandEvent event, long sequence, boolean endOfBatch) throws Exception {
@@ -44,9 +54,12 @@ public class GatewayOrderCommandHandler implements EventHandler<OrderCommandEven
         processedCount++;
 
         if (endOfBatch) {
-            // Flushes batched direct buffer to TCP socket channel
             directBuffer.flip();
-            // In TCP mode, this calls socketChannel.write(directBuffer)
+            if (socketChannel != null && socketChannel.isOpen()) {
+                while (directBuffer.hasRemaining()) {
+                    socketChannel.write(directBuffer);
+                }
+            }
             directBuffer.clear();
         }
     }
@@ -55,4 +68,3 @@ public class GatewayOrderCommandHandler implements EventHandler<OrderCommandEven
         return processedCount;
     }
 }
-

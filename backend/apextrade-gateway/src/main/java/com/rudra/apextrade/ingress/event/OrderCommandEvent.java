@@ -6,13 +6,12 @@ import com.rudra.apextrade.common.Side;
 import lombok.Getter;
 import lombok.Setter;
 
-abstract class GatewayOrderCommandEventLhsPadding {
+abstract class OrderCommandEventLhsPadding {
     protected long p1, p2, p3, p4;
 }
 
 @Getter
-@Setter
-abstract class GatewayOrderCommandEventFields extends GatewayOrderCommandEventLhsPadding {
+abstract class OrderCommandEventFields extends OrderCommandEventLhsPadding {
     protected CommandType commandType;
     protected long userId;
     protected long orderId;
@@ -23,10 +22,7 @@ abstract class GatewayOrderCommandEventFields extends GatewayOrderCommandEventLh
     protected long timestamp;
 }
 
-/**
- * Cache-line padded event for Gateway's MPSC Ingress Disruptor.
- */
-public class OrderCommandEvent extends GatewayOrderCommandEventFields {
+public class OrderCommandEvent extends OrderCommandEventFields {
     protected long p5, p6, p7, p8;
 
     public void set(
