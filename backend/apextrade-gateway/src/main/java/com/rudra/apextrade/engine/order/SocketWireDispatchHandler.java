@@ -1,9 +1,8 @@
-package com.rudra.apextrade.ingress.handler;
+package com.rudra.apextrade.engine.order;
 
 import com.lmax.disruptor.EventHandler;
 import com.rudra.apextrade.common.CommandType;
 import com.rudra.apextrade.common.OrderWireCodec;
-import com.rudra.apextrade.ingress.event.OrderCommandEvent;
 import lombok.Setter;
 
 import java.io.IOException;
@@ -64,5 +63,4 @@ public class SocketWireDispatchHandler implements EventHandler<OrderCommandEvent
         }
         directBuffer.clear();
     }
-
 }

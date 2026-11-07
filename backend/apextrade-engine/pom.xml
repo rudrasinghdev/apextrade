@@ -41,7 +41,7 @@
                         <configuration>
                             <archive>
                                 <manifest>
-                                    <mainClass>com.rudra.apextrade.core.engine.EngineMain</mainClass>
+                                    <mainClass>com.rudra.apextrade.EngineMain</mainClass>
                                 </manifest>
                             </archive>
                             <descriptorRefs>

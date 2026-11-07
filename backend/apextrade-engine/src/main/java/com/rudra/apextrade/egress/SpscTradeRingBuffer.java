@@ -1,4 +1,4 @@
-package com.rudra.apextrade.egress.buffer;
+package com.rudra.apextrade.egress;
 
 import com.rudra.apextrade.common.Side;
 import java.lang.invoke.MethodHandles;

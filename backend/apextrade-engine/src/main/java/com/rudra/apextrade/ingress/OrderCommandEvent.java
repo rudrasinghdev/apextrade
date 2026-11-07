@@ -1,5 +1,6 @@
-package com.rudra.apextrade.ingress.event;
+package com.rudra.apextrade.ingress;
 
+import com.rudra.apextrade.common.CommandType;
 import com.rudra.apextrade.common.OrderType;
 import com.rudra.apextrade.common.Side;
 import lombok.Getter;
@@ -11,7 +12,7 @@ abstract class OrderCommandEventLhsPadding {
 
 @Getter
 @Setter
-abstract class OrderCommandEventFields extends OrderCommandEventLhsPadding{
+abstract class OrderCommandEventFields extends OrderCommandEventLhsPadding {
     protected CommandType commandType;
     protected long userId;
     protected long orderId;
@@ -22,7 +23,7 @@ abstract class OrderCommandEventFields extends OrderCommandEventLhsPadding{
     protected long timestamp;
 }
 
-public class OrderCommandEvent extends OrderCommandEventFields{
+public class OrderCommandEvent extends OrderCommandEventFields {
     protected long p5, p6, p7, p8;
 
     public void set(CommandType commandType, long userId, long orderId, Side side,
@@ -43,5 +44,4 @@ public class OrderCommandEvent extends OrderCommandEventFields{
         this.orderId = orderId;
         this.userId = userId;
     }
-
 }

@@ -1,16 +1,12 @@
-package com.rudra.apextrade.core.engine;
+package com.rudra.apextrade;
 
-import com.rudra.apextrade.common.OrderType;
-import com.rudra.apextrade.common.Side;
 import com.rudra.apextrade.core.book.OrderBook;
+import com.rudra.apextrade.core.engine.MatchingEngine;
 import com.rudra.apextrade.core.order.OrderPool;
-import com.rudra.apextrade.egress.buffer.SpscTradeRingBuffer;
-import com.rudra.apextrade.egress.handler.TradeEgressHandler;
-import com.rudra.apextrade.egress.publisher.TradeEgressPublisher;
+import com.rudra.apextrade.egress.SpscTradeRingBuffer;
+import com.rudra.apextrade.egress.TradeEgressHandler;
+import com.rudra.apextrade.egress.TradeEgressPublisher;
 
-/**
- * Standalone low-latency execution entry point for S2 Matching Engine Core.
- */
 public class EngineMain {
 
     public static void main(String[] args) {
@@ -32,4 +28,3 @@ public class EngineMain {
         System.out.println("[S2 Engine] Ready for high-throughput order execution.");
     }
 }
-

@@ -1,4 +1,4 @@
-package com.rudra.apextrade.ingress.event;
+package com.rudra.apextrade.ingress;
 
 import com.lmax.disruptor.EventFactory;
 
@@ -8,5 +8,4 @@ public class OrderCommandEventFactory implements EventFactory<OrderCommandEvent>
     public OrderCommandEvent newInstance() {
         return new OrderCommandEvent();
     }
-
 }

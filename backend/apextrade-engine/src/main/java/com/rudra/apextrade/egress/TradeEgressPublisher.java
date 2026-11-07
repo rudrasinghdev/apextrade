@@ -1,8 +1,7 @@
-package com.rudra.apextrade.egress.publisher;
+package com.rudra.apextrade.egress;
 
 import com.rudra.apextrade.common.Side;
 import com.rudra.apextrade.core.trade.TradeListener;
-import com.rudra.apextrade.egress.buffer.SpscTradeRingBuffer;
 
 public class TradeEgressPublisher implements TradeListener {
 
