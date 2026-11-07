@@ -15,7 +15,7 @@ public class Account {
     private final ConcurrentHashMap<Long, Long> activeBuyOrders = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Long, Long> activeSellOrders = new ConcurrentHashMap<>();
 
-    public Account(long userId, long initialUsd, long initialBtc) {
+    public Account(long initialUsd, long initialBtc) {
         this.availableUsd = new AtomicLong(initialUsd);
         this.reservedUsd = new AtomicLong(0L);
         this.availableBtc = new AtomicLong(initialBtc);

@@ -84,7 +84,7 @@ class AccountLedgerTest {
     @Test
     @DisplayName("Account Concurrency: 10 concurrent threads competing for limited balance never overdraw (CAS safety)")
     void testConcurrentOverdrawProtection() throws InterruptedException {
-        Account account = new Account(101L, 1_000L, 0L);
+        Account account = new Account(1_000L, 0L);
 
         int threadCount = 10;
         long orderCost = 200L; // each wants 200 USD (only 5 can succeed out of 10)

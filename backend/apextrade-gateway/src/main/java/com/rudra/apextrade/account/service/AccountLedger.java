@@ -18,7 +18,7 @@ public class AccountLedger {
     private final ConcurrentHashMap<Long, Account> accounts = new ConcurrentHashMap<>();
 
     public void createAccount(long userId) {
-        Account newAccount = new Account(userId, DEFAULT_INITIAL_USD, DEFAULT_INITIAL_BTC);
+        Account newAccount = new Account(DEFAULT_INITIAL_USD, DEFAULT_INITIAL_BTC);
         Account existing = accounts.putIfAbsent(userId, newAccount);
         if (existing != null) {
             throw new AccountAlreadyExistsException("Account already exists for trader #" + userId);
