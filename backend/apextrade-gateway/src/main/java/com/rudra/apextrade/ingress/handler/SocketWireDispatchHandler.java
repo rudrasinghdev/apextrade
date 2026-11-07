@@ -6,6 +6,7 @@ import com.rudra.apextrade.common.OrderWireCodec;
 import com.rudra.apextrade.ingress.event.OrderCommandEvent;
 import lombok.Setter;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
@@ -14,7 +15,7 @@ public class SocketWireDispatchHandler implements EventHandler<OrderCommandEvent
     private final ByteBuffer directBuffer = ByteBuffer.allocateDirect(1024 * 64);
 
     @Setter
-    private SocketChannel socketChannel;
+    private volatile SocketChannel socketChannel;
 
     public SocketWireDispatchHandler() {
         this.socketChannel = null;
@@ -24,6 +25,10 @@ public class SocketWireDispatchHandler implements EventHandler<OrderCommandEvent
     public void onEvent(OrderCommandEvent event, long sequence, boolean endOfBatch) throws Exception {
         if (event.getCommandType() == null) {
             return;
+        }
+
+        if (directBuffer.remaining() < OrderWireCodec.FRAME_SIZE) {
+            flush();
         }
 
         if (event.getCommandType() == CommandType.PLACE_ORDER) {
@@ -45,15 +50,19 @@ public class SocketWireDispatchHandler implements EventHandler<OrderCommandEvent
         }
 
         if (endOfBatch) {
-            directBuffer.flip();
-            SocketChannel channel = this.socketChannel;
-            if (channel != null && channel.isOpen() && channel.isConnected()) {
-                while (directBuffer.hasRemaining()) {
-                    channel.write(directBuffer);
-                }
-            }
-            directBuffer.clear();
+            flush();
         }
+    }
+
+    private void flush() throws IOException {
+        directBuffer.flip();
+        SocketChannel channel = this.socketChannel;
+        if (channel != null && channel.isOpen() && channel.isConnected()) {
+            while (directBuffer.hasRemaining()) {
+                channel.write(directBuffer);
+            }
+        }
+        directBuffer.clear();
     }
 
 }
