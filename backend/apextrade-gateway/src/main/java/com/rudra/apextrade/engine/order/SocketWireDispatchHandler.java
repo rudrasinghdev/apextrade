@@ -34,7 +34,7 @@ public class SocketWireDispatchHandler implements EventHandler<OrderCommandEvent
             OrderWireCodec.encodeNewOrder(
                     directBuffer,
                     event.getOrderId(),
-                    (int) event.getUserId(),
+                    event.getUserId(),
                     event.getSide(),
                     event.getOrderType(),
                     event.getPrice(),
@@ -44,7 +44,7 @@ public class SocketWireDispatchHandler implements EventHandler<OrderCommandEvent
             OrderWireCodec.encodeCancelOrder(
                     directBuffer,
                     event.getOrderId(),
-                    (int) event.getUserId()
+                    event.getUserId()
             );
         }
 

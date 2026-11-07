@@ -2,23 +2,10 @@ package com.rudra.apextrade.common;
 
 import java.nio.ByteBuffer;
 
-/**
- * High-performance, zero-allocation binary wire codec for raw TCP IPC between Gateway and Engine.
- * Framing layout (36 bytes):
- * - Magic (2 bytes): 0x4150 ('AP')
- * - MsgType (1 byte): 1 = NEW_ORDER, 2 = CANCEL_ORDER
- * - Side (1 byte): 0 = BUY, 1 = SELL
- * - OrderType (1 byte): 0 = LIMIT, 1 = MARKET
- * - Reserved (3 bytes): Alignment padding
- * - OrderId (8 bytes): long
- * - UserId (4 bytes): int
- * - Price (8 bytes): long (fixed-point cents/ticks)
- * - Quantity (8 bytes): long
- */
 public final class OrderWireCodec {
 
     public static final short MAGIC = 0x4150;
-    public static final int FRAME_SIZE = 36;
+    public static final int FRAME_SIZE = 40;
 
     public static final byte MSG_TYPE_NEW_ORDER = 1;
     public static final byte MSG_TYPE_CANCEL_ORDER = 2;
@@ -29,7 +16,7 @@ public final class OrderWireCodec {
     public static void encodeNewOrder(
             ByteBuffer buffer,
             long orderId,
-            int userId,
+            long userId,
             Side side,
             OrderType orderType,
             long price,
@@ -42,12 +29,12 @@ public final class OrderWireCodec {
         buffer.put((byte) 0);
         buffer.putShort((short) 0);
         buffer.putLong(orderId);
-        buffer.putInt(userId);
+        buffer.putLong(userId);
         buffer.putLong(price);
         buffer.putLong(quantity);
     }
 
-    public static void encodeCancelOrder(ByteBuffer buffer, long orderId, int userId) {
+    public static void encodeCancelOrder(ByteBuffer buffer, long orderId, long userId) {
         buffer.putShort(MAGIC);
         buffer.put(MSG_TYPE_CANCEL_ORDER);
         buffer.put((byte) 0);
@@ -55,9 +42,43 @@ public final class OrderWireCodec {
         buffer.put((byte) 0);
         buffer.putShort((short) 0);
         buffer.putLong(orderId);
-        buffer.putInt(userId);
+        buffer.putLong(userId);
         buffer.putLong(0L);
         buffer.putLong(0L);
     }
-}
 
+    public static int decodeFrames(ByteBuffer buffer, OrderWireHandler handler) {
+        int count = 0;
+        while (buffer.remaining() >= FRAME_SIZE) {
+            buffer.mark();
+            short magic = buffer.getShort();
+            if (magic != MAGIC) {
+                buffer.reset();
+                buffer.get();
+                continue;
+            }
+
+            byte msgType = buffer.get();
+            byte sideByte = buffer.get();
+            byte orderTypeByte = buffer.get();
+            buffer.get();
+            buffer.getShort();
+            long orderId = buffer.getLong();
+            long userId = buffer.getLong();
+            long price = buffer.getLong();
+            long quantity = buffer.getLong();
+
+            Side side = (sideByte == 0) ? Side.BUY : Side.SELL;
+            OrderType orderType = (orderTypeByte == 0) ? OrderType.LIMIT : OrderType.MARKET;
+
+            if (msgType == MSG_TYPE_NEW_ORDER) {
+                handler.onNewOrder(orderId, userId, side, orderType, price, quantity);
+                count++;
+            } else if (msgType == MSG_TYPE_CANCEL_ORDER) {
+                handler.onCancelOrder(orderId, userId);
+                count++;
+            }
+        }
+        return count;
+    }
+}
