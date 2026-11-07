@@ -9,7 +9,9 @@ import com.rudra.apextrade.order.dto.OrderResponse;
 import com.rudra.apextrade.order.exception.OrderNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Service
@@ -18,6 +20,7 @@ public class OrderService {
     private final OrderCommandPublisher publisher;
     private final AccountLedger ledger;
     private final AtomicLong orderIdSequence = new AtomicLong(1);
+    private final Map<Long, Long> orderOwnerMap = new ConcurrentHashMap<>();
 
     public OrderService(OrderCommandPublisher publisher, AccountLedger ledger) {
         this.publisher = publisher;
@@ -46,6 +49,8 @@ public class OrderService {
             }
         }
 
+        orderOwnerMap.put(orderId, userId);
+
         publisher.publishPlaceOrder(
                 orderId,
                 userId,
@@ -67,8 +72,17 @@ public class OrderService {
             throw new OrderNotFoundException("Order #" + orderId + " not found or does not belong to trader #" + userId);
         }
 
+        orderOwnerMap.remove(orderId);
         publisher.publishCancelOrder(orderId, userId, timestampNs);
         return OrderResponse.accepted(orderId, timestampNs);
+    }
+
+    public Long getOrderOwner(long orderId) {
+        return orderOwnerMap.get(orderId);
+    }
+
+    public void removeOrderOwner(long orderId) {
+        orderOwnerMap.remove(orderId);
     }
 
     public Set<Long> getActiveOrderIds(long userId) {

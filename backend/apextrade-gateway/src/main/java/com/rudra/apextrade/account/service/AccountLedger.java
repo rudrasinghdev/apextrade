@@ -45,6 +45,20 @@ public class AccountLedger {
         return getAccount(userId).cancelOrder(orderId);
     }
 
+    public void settleBuyTrade(long userId, long orderId, long usdCost, long btcReceived) {
+        Account account = accounts.get(userId);
+        if (account != null) {
+            account.settleBuyTrade(orderId, usdCost, btcReceived);
+        }
+    }
+
+    public void settleSellTrade(long userId, long orderId, long btcSold, long usdReceived) {
+        Account account = accounts.get(userId);
+        if (account != null) {
+            account.settleSellTrade(orderId, btcSold, usdReceived);
+        }
+    }
+
     public Set<Long> getActiveOrderIds(long userId) {
         return getAccount(userId).getActiveOrderIds();
     }

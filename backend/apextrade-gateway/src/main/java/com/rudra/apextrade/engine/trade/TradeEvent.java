@@ -1,9 +1,34 @@
 package com.rudra.apextrade.engine.trade;
 
-/**
- * Pre-allocated trade slot in S1 Trade Inbound RingBuffer.
- * Populated by TCP socket reader when S2 matching engine emits 40-byte trade frames.
- */
-public class TradeEvent {
-    // Stub - to be implemented with binary trade fields
+import com.rudra.apextrade.common.Side;
+import lombok.Getter;
+
+abstract class TradeEventLhsPadding {
+    protected long p1, p2, p3, p4;
+}
+
+@Getter
+abstract class TradeEventFields extends TradeEventLhsPadding {
+    protected long tradeId;
+    protected long makerOrderId;
+    protected long takerOrderId;
+    protected Side takerSide;
+    protected long price;
+    protected long quantity;
+    protected long timestamp;
+}
+
+public class TradeEvent extends TradeEventFields {
+    protected long p5, p6, p7, p8;
+
+    public void set(long tradeId, long makerOrderId, long takerOrderId,
+                    Side takerSide, long price, long quantity, long timestamp) {
+        this.tradeId = tradeId;
+        this.makerOrderId = makerOrderId;
+        this.takerOrderId = takerOrderId;
+        this.takerSide = takerSide;
+        this.price = price;
+        this.quantity = quantity;
+        this.timestamp = timestamp;
+    }
 }
