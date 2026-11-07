@@ -13,6 +13,7 @@ COPY .mvn .mvn
 COPY mvnw .
 COPY mvnw.cmd .
 COPY apextrade-common apextrade-common
+COPY apextrade-gateway apextrade-gateway
 COPY apextrade-engine apextrade-engine
 
 # Package standalone fat JAR with all dependencies bundled
