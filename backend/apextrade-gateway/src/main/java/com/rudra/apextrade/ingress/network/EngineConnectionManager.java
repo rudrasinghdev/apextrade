@@ -2,116 +2,66 @@ package com.rudra.apextrade.ingress.network;
 
 import com.rudra.apextrade.ingress.handler.SocketWireDispatchHandler;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.SmartLifecycle;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
-import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 @Slf4j
 @Component
-public class EngineConnectionManager implements SmartLifecycle, Runnable {
+public class EngineConnectionManager implements ApplicationRunner, AutoCloseable {
 
     private final SocketWireDispatchHandler dispatchHandler;
     private final String engineHost;
     private final int enginePort;
-    private final long reconnectIntervalMs;
-
-    private volatile boolean running = false;
-    private Thread connectionThread;
+    private SocketChannel socketChannel;
 
     public EngineConnectionManager(
             SocketWireDispatchHandler dispatchHandler,
             @Value("${apextrade.engine.host:localhost}") String engineHost,
-            @Value("${apextrade.engine.port:9000}") int enginePort,
-            @Value("${apextrade.engine.reconnect-interval-ms:2000}") long reconnectIntervalMs
+            @Value("${apextrade.engine.port:9000}") int enginePort
     ) {
         this.dispatchHandler = dispatchHandler;
         this.engineHost = engineHost;
         this.enginePort = enginePort;
-        this.reconnectIntervalMs = reconnectIntervalMs;
     }
 
     @Override
-    public void start() {
-        if (running) return;
-        running = true;
-        connectionThread = new Thread(this, "engine-conn-manager");
-        connectionThread.setDaemon(true);
-        connectionThread.start();
-        log.info("EngineConnectionManager initialized for target {}:{}", engineHost, enginePort);
-    }
+    public void run(@NonNull ApplicationArguments args) {
+        log.info("Connecting to Matching Engine Core (S2) at {}:{}...", engineHost, enginePort);
+        try {
+            socketChannel = SocketChannel.open();
+            socketChannel.configureBlocking(true);
+            socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
+            socketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
+            socketChannel.connect(new InetSocketAddress(engineHost, enginePort));
+            socketChannel.configureBlocking(false);
 
-    @Override
-    public void run() {
-        while (running) {
-            SocketChannel channel = null;
-            try {
-                log.info("Connecting to S2 Matching Engine at {}:{}...", engineHost, enginePort);
-                channel = SocketChannel.open();
-                channel.configureBlocking(true);
-                channel.setOption(StandardSocketOptions.TCP_NODELAY, true);
-                channel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
-                channel.connect(new InetSocketAddress(engineHost, enginePort));
-
-                dispatchHandler.setSocketChannel(channel);
-                log.info("CONNECTED to S2 Matching Engine at {}:{} [TCP_NODELAY=true]", engineHost, enginePort);
-
-                ByteBuffer readerBuf = ByteBuffer.allocate(1024);
-                while (running && channel.isOpen()) {
-                    int bytesRead = channel.read(readerBuf);
-                    if (bytesRead == -1) {
-                        log.warn("S2 Matching Engine closed the connection (EOF)");
-                        break;
-                    }
-                    readerBuf.clear();
-                }
-            } catch (IOException e) {
-                log.warn("Connection to S2 Engine at {}:{} failed ({}) - retrying in {}ms...",
-                        engineHost, enginePort, e.getMessage(), reconnectIntervalMs);
-            } finally {
-                dispatchHandler.setSocketChannel(null);
-                if (channel != null) {
-                    try {
-                        channel.close();
-                    } catch (IOException ignored) {
-                    }
-                }
-            }
-
-            if (running) {
-                try {
-                    Thread.sleep(reconnectIntervalMs);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
+            dispatchHandler.setSocketChannel(socketChannel);
+            log.info("CONNECTED to Matching Engine Core (S2) on port {}", enginePort);
+        } catch (IOException e) {
+            log.error("CRITICAL: Failed to connect to Matching Engine Core at {}:{}. Engine must be running first!",
+                    engineHost, enginePort, e);
+            throw new IllegalStateException("Matching Engine unavailable at " + engineHost + ":" + enginePort
+                    + ". Aborting Gateway startup.", e);
         }
     }
 
     @Override
-    public void stop() {
-        running = false;
+    public void close() {
         dispatchHandler.setSocketChannel(null);
-        if (connectionThread != null) {
-            connectionThread.interrupt();
+        if (socketChannel != null) {
+            try {
+                socketChannel.close();
+            } catch (IOException ignored) {
+            }
         }
-        log.info("EngineConnectionManager stopped.");
-    }
-
-    @Override
-    public boolean isRunning() {
-        return running;
-    }
-
-    @Override
-    public int getPhase() {
-        return Integer.MAX_VALUE;
+        log.info("Engine connection closed.");
     }
 }
-

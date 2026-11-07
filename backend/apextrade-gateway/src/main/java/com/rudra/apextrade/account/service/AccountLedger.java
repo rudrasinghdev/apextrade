@@ -33,10 +33,6 @@ public class AccountLedger {
         return account;
     }
 
-    public boolean hasAccount(long userId) {
-        return accounts.containsKey(userId);
-    }
-
     public boolean reserveBuyMargin(long userId, long orderId, long usdCost) {
         return getAccount(userId).placeBuyOrder(orderId, usdCost);
     }

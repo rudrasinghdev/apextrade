@@ -14,16 +14,10 @@ public class SocketWireDispatchHandler implements EventHandler<OrderCommandEvent
     private final ByteBuffer directBuffer = ByteBuffer.allocateDirect(1024 * 64);
 
     @Setter
-    private volatile SocketChannel socketChannel;
-    private long processedCount = 0;
+    private SocketChannel socketChannel;
 
     public SocketWireDispatchHandler() {
         this.socketChannel = null;
-    }
-
-    public boolean isConnected() {
-        SocketChannel channel = this.socketChannel;
-        return channel != null && channel.isOpen() && channel.isConnected();
     }
 
     @Override
@@ -50,8 +44,6 @@ public class SocketWireDispatchHandler implements EventHandler<OrderCommandEvent
             );
         }
 
-        processedCount++;
-
         if (endOfBatch) {
             directBuffer.flip();
             SocketChannel channel = this.socketChannel;
@@ -64,7 +56,4 @@ public class SocketWireDispatchHandler implements EventHandler<OrderCommandEvent
         }
     }
 
-    public long getProcessedCount() {
-        return processedCount;
-    }
 }

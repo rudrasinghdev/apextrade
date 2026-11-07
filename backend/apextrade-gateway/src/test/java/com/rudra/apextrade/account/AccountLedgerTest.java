@@ -109,7 +109,7 @@ class AccountLedgerTest {
             });
         }
 
-        startLatch.countDown(); // Fire all 10 threads concurrently
+        startLatch.countDown();
         finishLatch.await();
         executor.shutdown();
 
