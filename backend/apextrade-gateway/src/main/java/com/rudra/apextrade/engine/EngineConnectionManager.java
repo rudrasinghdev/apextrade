@@ -1,8 +1,8 @@
 package com.rudra.apextrade.engine;
 
-import com.rudra.apextrade.common.TradeWireCodec;
+import com.rudra.apextrade.common.ExecutionWireCodec;
+import com.rudra.apextrade.engine.execution.ExecutionEventPublisher;
 import com.rudra.apextrade.engine.order.SocketWireDispatchHandler;
-import com.rudra.apextrade.engine.trade.TradeEventPublisher;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +21,7 @@ import java.nio.channels.SocketChannel;
 public class EngineConnectionManager implements ApplicationRunner, AutoCloseable {
 
     private final SocketWireDispatchHandler dispatchHandler;
-    private final TradeEventPublisher tradePublisher;
+    private final ExecutionEventPublisher executionPublisher;
     private final String engineHost;
     private final int enginePort;
     private SocketChannel socketChannel;
@@ -30,12 +30,12 @@ public class EngineConnectionManager implements ApplicationRunner, AutoCloseable
 
     public EngineConnectionManager(
             SocketWireDispatchHandler dispatchHandler,
-            TradeEventPublisher tradePublisher,
+            ExecutionEventPublisher executionPublisher,
             @Value("${apextrade.engine.host:localhost}") String engineHost,
             @Value("${apextrade.engine.port:9000}") int enginePort
     ) {
         this.dispatchHandler = dispatchHandler;
-        this.tradePublisher = tradePublisher;
+        this.executionPublisher = executionPublisher;
         this.engineHost = engineHost;
         this.enginePort = enginePort;
     }
@@ -60,18 +60,18 @@ public class EngineConnectionManager implements ApplicationRunner, AutoCloseable
             dispatchHandler.setSocketChannel(this.socketChannel);
             log.info("[S1 Gateway] Connected to S2 Matching Engine on port {}", enginePort);
 
-            // Start dedicated daemon socket reader thread for incoming trades
-            startTradeReaderThread();
+            // Start dedicated daemon socket reader thread for incoming executions
+            startExecutionReaderThread();
         } catch (IOException e) {
             log.error("[S1 Gateway] Failed to connect to S2 Matching Engine: {}", e.getMessage());
             throw new IllegalStateException("Matching Engine unavailable at " + engineHost + ":" + enginePort, e);
         }
     }
 
-    private void startTradeReaderThread() {
+    private void startExecutionReaderThread() {
         readerThread = new Thread(() -> {
             ByteBuffer directBuffer = ByteBuffer.allocateDirect(1024 * 64);
-            log.info("[S1 Gateway] Trade socket reader active.");
+            log.info("[S1 Gateway] Execution socket reader active.");
 
             while (running && socketChannel.isOpen()) {
                 try {
@@ -83,7 +83,7 @@ public class EngineConnectionManager implements ApplicationRunner, AutoCloseable
 
                     if (bytesRead > 0) {
                         directBuffer.flip();
-                        TradeWireCodec.decodeFrames(directBuffer, tradePublisher::publishTrade);
+                        ExecutionWireCodec.decodeFrames(directBuffer, executionPublisher);
                         directBuffer.compact();
                     } else {
                         Thread.onSpinWait();
@@ -95,7 +95,7 @@ public class EngineConnectionManager implements ApplicationRunner, AutoCloseable
                     break;
                 }
             }
-        }, "gateway-trade-receiver");
+        }, "gateway-execution-receiver");
 
         readerThread.setDaemon(true);
         readerThread.start();

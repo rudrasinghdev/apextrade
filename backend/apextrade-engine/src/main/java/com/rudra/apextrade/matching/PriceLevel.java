@@ -1,9 +1,9 @@
-package com.rudra.apextrade.core.order;
+package com.rudra.apextrade.matching;
 
 import lombok.Getter;
 
 @Getter
-public class  PriceLevel {
+public class PriceLevel {
 
     private final long price;
     private long totalVolume;
@@ -58,5 +58,5 @@ public class  PriceLevel {
     public boolean isEmpty() {
         return orderCount == 0;
     }
-
 }
+

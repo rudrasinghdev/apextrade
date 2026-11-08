@@ -2,7 +2,8 @@ package com.rudra.apextrade.ingress;
 
 import com.lmax.disruptor.EventHandler;
 import com.rudra.apextrade.common.CommandType;
-import com.rudra.apextrade.core.engine.MatchingEngine;
+import com.rudra.apextrade.common.event.OrderCommandEvent;
+import com.rudra.apextrade.matching.MatchingEngine;
 
 public class OrderCommandHandler implements EventHandler<OrderCommandEvent> {
 

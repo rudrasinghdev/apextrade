@@ -1,4 +1,4 @@
-package com.rudra.apextrade.ingress;
+package com.rudra.apextrade.common.event;
 
 import com.rudra.apextrade.common.CommandType;
 import com.rudra.apextrade.common.OrderType;
@@ -28,7 +28,6 @@ public class OrderCommandEvent extends OrderCommandEventFields {
 
     public void set(CommandType commandType, long userId, long orderId, Side side,
                     long price, long quantity, OrderType orderType, long timestamp) {
-
         this.commandType = commandType;
         this.userId = userId;
         this.orderId = orderId;

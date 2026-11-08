@@ -3,10 +3,10 @@ package com.rudra.apextrade.ingress;
 import com.lmax.disruptor.RingBuffer;
 import com.rudra.apextrade.common.CommandType;
 import com.rudra.apextrade.common.OrderType;
-import com.rudra.apextrade.common.OrderWireCodec;
 import com.rudra.apextrade.common.Side;
+import com.rudra.apextrade.common.event.OrderCommandEvent;
 
-public class OrderCommandPublisher implements OrderWireCodec.Handler {
+public class OrderCommandPublisher {
 
     private final RingBuffer<OrderCommandEvent> ringBuffer;
 
@@ -14,19 +14,8 @@ public class OrderCommandPublisher implements OrderWireCodec.Handler {
         this.ringBuffer = ringBuffer;
     }
 
-    @Override
-    public void onNewOrder(long orderId, long userId, Side side, OrderType orderType, long price, long quantity) {
-        publishPlaceOrder(orderId, userId, side, price, quantity, orderType, System.nanoTime());
-    }
-
-    @Override
-    public void onCancelOrder(long orderId, long userId) {
-        publishCancelOrder(orderId, System.nanoTime());
-    }
-
     public void publishPlaceOrder(long orderId, long userId, Side side,
-                                  long price, long quantity, OrderType orderType, long timestamp) {
-
+                                   long price, long quantity, OrderType orderType, long timestamp) {
         long sequence = ringBuffer.next();
         try {
             OrderCommandEvent event = ringBuffer.get(sequence);
@@ -36,11 +25,12 @@ public class OrderCommandPublisher implements OrderWireCodec.Handler {
         }
     }
 
-    public void publishCancelOrder(long orderId, long timestamp) {
+    public void publishCancelOrder(long orderId, long userId, long timestamp) {
         long sequence = ringBuffer.next();
         try {
             OrderCommandEvent event = ringBuffer.get(sequence);
-            event.set(CommandType.CANCEL_ORDER, 0, orderId, null, 0, 0, null, timestamp);
+            event.setCancel(orderId, userId);
+            event.setTimestamp(timestamp);
         } finally {
             ringBuffer.publish(sequence);
         }

@@ -1,7 +1,7 @@
 package com.rudra.apextrade.network;
 
-import com.rudra.apextrade.common.OrderWireCodec;
-import com.rudra.apextrade.egress.SocketTradeDispatcher;
+import com.rudra.apextrade.egress.SocketExecutionDispatcher;
+import com.rudra.apextrade.ingress.OrderIngressHandler;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -16,14 +16,14 @@ import java.util.Iterator;
 public class EngineServer {
 
     private final int port;
-    private final OrderWireCodec.Handler wireHandler;
-    private final SocketTradeDispatcher tradeDispatcher;
+    private final OrderIngressHandler ingressHandler;
+    private final SocketExecutionDispatcher executionDispatcher;
     private final Thread serverThread;
 
-    public EngineServer(int port, OrderWireCodec.Handler wireHandler, SocketTradeDispatcher tradeDispatcher) {
+    public EngineServer(int port, OrderIngressHandler ingressHandler, SocketExecutionDispatcher executionDispatcher) {
         this.port = port;
-        this.wireHandler = wireHandler;
-        this.tradeDispatcher = tradeDispatcher;
+        this.ingressHandler = ingressHandler;
+        this.executionDispatcher = executionDispatcher;
         this.serverThread = new Thread(this::runLoop, "engine-nio-server");
         this.serverThread.setDaemon(false);
     }
@@ -43,10 +43,7 @@ public class EngineServer {
             System.out.println("[S2 Engine TCP Server] Listening on port " + port);
 
             while (selector.isOpen()) {
-                int selected = selector.select(500);
-                if (selected == 0) {
-                    continue;
-                }
+                selector.select();
 
                 Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
                 while (keys.hasNext()) {
@@ -59,7 +56,7 @@ public class EngineServer {
 
                     try {
                         if (key.isAcceptable()) {
-                            handleAccept(selector, key);
+                            handleAccept(selector, serverChannel);
                         } else if (key.isReadable()) {
                             handleRead(key);
                         }
@@ -74,13 +71,12 @@ public class EngineServer {
         }
     }
 
-    private void handleAccept(Selector selector, SelectionKey key) throws IOException {
-        ServerSocketChannel ssc = (ServerSocketChannel) key.channel();
+    private void handleAccept(Selector selector, ServerSocketChannel ssc) throws IOException {
         SocketChannel sc = ssc.accept();
         if (sc != null) {
             sc.configureBlocking(false);
             sc.setOption(StandardSocketOptions.TCP_NODELAY, true);
-            tradeDispatcher.setSocketChannel(sc);
+            executionDispatcher.setSocketChannel(sc);
 
             ByteBuffer readBuffer = ByteBuffer.allocateDirect(1024 * 64);
             sc.register(selector, SelectionKey.OP_READ, readBuffer);
@@ -100,12 +96,12 @@ public class EngineServer {
         }
 
         buffer.flip();
-        OrderWireCodec.decodeFrames(buffer, wireHandler);
+        ingressHandler.handle(buffer);
         buffer.compact();
     }
 
     private void closeConnection(SelectionKey key) {
-        tradeDispatcher.setSocketChannel(null);
+        executionDispatcher.setSocketChannel(null);
         key.cancel();
         try {
             key.channel().close();

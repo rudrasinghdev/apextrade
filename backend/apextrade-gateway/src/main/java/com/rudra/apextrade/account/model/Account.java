@@ -58,6 +58,10 @@ public class Account {
         return false;
     }
 
+    public boolean hasActiveOrder(long orderId) {
+        return activeBuyOrders.containsKey(orderId) || activeSellOrders.containsKey(orderId);
+    }
+
     public Set<Long> getActiveOrderIds() {
         Set<Long> ids = ConcurrentHashMap.newKeySet();
         ids.addAll(activeBuyOrders.keySet());
@@ -156,4 +160,3 @@ public class Account {
     }
 
 }
-

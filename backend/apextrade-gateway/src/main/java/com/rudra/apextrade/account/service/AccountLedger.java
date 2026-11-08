@@ -45,6 +45,11 @@ public class AccountLedger {
         return getAccount(userId).cancelOrder(orderId);
     }
 
+    public boolean hasActiveOrder(long userId, long orderId) {
+        Account account = accounts.get(userId);
+        return account != null && account.hasActiveOrder(orderId);
+    }
+
     public void settleBuyTrade(long userId, long orderId, long usdCost, long btcReceived) {
         Account account = accounts.get(userId);
         if (account != null) {

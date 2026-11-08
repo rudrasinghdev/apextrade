@@ -2,7 +2,8 @@ package com.rudra.apextrade.engine.order;
 
 import com.lmax.disruptor.EventHandler;
 import com.rudra.apextrade.common.CommandType;
-import com.rudra.apextrade.common.OrderWireCodec;
+import com.rudra.apextrade.common.OrderCommandCodec;
+import com.rudra.apextrade.common.event.OrderCommandEvent;
 import lombok.Setter;
 
 import java.io.IOException;
@@ -26,22 +27,22 @@ public class SocketWireDispatchHandler implements EventHandler<OrderCommandEvent
             return;
         }
 
-        if (directBuffer.remaining() < OrderWireCodec.FRAME_SIZE) {
+        if (directBuffer.remaining() < OrderCommandCodec.FRAME_SIZE) {
             flush();
         }
 
         if (event.getCommandType() == CommandType.PLACE_ORDER) {
-            OrderWireCodec.encodeNewOrder(
+            OrderCommandCodec.encodeNewOrder(
                     directBuffer,
                     event.getOrderId(),
                     event.getUserId(),
                     event.getSide(),
-                    event.getOrderType(),
                     event.getPrice(),
-                    event.getQuantity()
+                    event.getQuantity(),
+                    event.getOrderType()
             );
         } else if (event.getCommandType() == CommandType.CANCEL_ORDER) {
-            OrderWireCodec.encodeCancelOrder(
+            OrderCommandCodec.encodeCancelOrder(
                     directBuffer,
                     event.getOrderId(),
                     event.getUserId()

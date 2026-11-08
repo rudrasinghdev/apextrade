@@ -1,10 +1,11 @@
 package com.rudra.apextrade;
 
-import com.rudra.apextrade.core.book.OrderBook;
-import com.rudra.apextrade.core.engine.MatchingEngine;
-import com.rudra.apextrade.core.order.OrderPool;
+import com.rudra.apextrade.matching.MatchingEngine;
+import com.rudra.apextrade.matching.OrderBook;
+import com.rudra.apextrade.matching.OrderPool;
 import com.rudra.apextrade.egress.EgressDisruptorConfig;
 import com.rudra.apextrade.ingress.IngressDisruptorConfig;
+import com.rudra.apextrade.ingress.OrderIngressHandler;
 import com.rudra.apextrade.network.EngineServer;
 
 public class EngineMain {
@@ -23,10 +24,18 @@ public class EngineMain {
         MatchingEngine matchingEngine = new MatchingEngine(orderBook, 50000L, egressConfig.getPublisher());
 
         IngressDisruptorConfig ingressConfig = new IngressDisruptorConfig(matchingEngine);
+        OrderIngressHandler ingressHandler = new OrderIngressHandler(ingressConfig.getPublisher());
 
         int tcpPort = Integer.parseInt(System.getenv().getOrDefault("APEXTRADE_ENGINE_PORT", "9000"));
-        EngineServer engineServer = new EngineServer(tcpPort, ingressConfig.getPublisher(), egressConfig.getDispatcher());
+        EngineServer engineServer = new EngineServer(tcpPort, ingressHandler, egressConfig.getDispatcher());
         engineServer.start();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("[S2 Engine] Gracefully shutting down Disruptors...");
+            ingressConfig.close();
+            egressConfig.close();
+            System.out.println("[S2 Engine] Shutdown complete.");
+        }, "engine-shutdown-hook"));
 
         System.out.println("[S2 Engine] Ready for high-throughput order execution on port " + tcpPort);
     }

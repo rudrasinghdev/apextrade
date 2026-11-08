@@ -1,8 +1,8 @@
-package com.rudra.apextrade.core.order;
+package com.rudra.apextrade.matching;
 
-import com.rudra.apextrade.common.Side;
-import com.rudra.apextrade.common.OrderType;
 import com.rudra.apextrade.common.OrderStatus;
+import com.rudra.apextrade.common.OrderType;
+import com.rudra.apextrade.common.Side;
 import lombok.Getter;
 
 @Getter
@@ -47,7 +47,7 @@ public class Order {
     }
 
     public void fill(long quantity) {
-        if(quantity<=0 || quantity>remainingQuantity) {
+        if (quantity <= 0 || quantity > remainingQuantity) {
             throw new IllegalArgumentException();
         }
         this.remainingQuantity = remainingQuantity - quantity;
@@ -61,5 +61,5 @@ public class Order {
     public boolean isFilled() {
         return remainingQuantity == 0;
     }
-
 }
+

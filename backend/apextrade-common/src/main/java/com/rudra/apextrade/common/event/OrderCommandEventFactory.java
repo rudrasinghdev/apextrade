@@ -1,4 +1,4 @@
-package com.rudra.apextrade.ingress;
+package com.rudra.apextrade.common.event;
 
 import com.lmax.disruptor.EventFactory;
 

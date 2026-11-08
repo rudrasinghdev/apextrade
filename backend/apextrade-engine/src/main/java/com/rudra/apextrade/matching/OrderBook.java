@@ -1,9 +1,13 @@
-package com.rudra.apextrade.core.book;
+package com.rudra.apextrade.matching;
 
-import com.rudra.apextrade.core.order.*;
-import com.rudra.apextrade.common.*;
+import com.rudra.apextrade.common.OrderType;
+import com.rudra.apextrade.common.Side;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 
 public class OrderBook {
 
@@ -24,7 +28,7 @@ public class OrderBook {
     public void addOrder(long userId, long orderId, Side side, long price,
                          long quantity, OrderType orderType, long timestamp) {
         Order order = orderPool.borrow();
-        if(order == null) {
+        if (order == null) {
             return;
         }
         order.set(userId, orderId, side, price, quantity, orderType, timestamp);
@@ -38,21 +42,26 @@ public class OrderBook {
         return side == Side.BUY ? bids : asks;
     }
 
-    public boolean cancelOrder(long id) {
+    public Order cancelOrder(long id) {
         Order order = orderMap.remove(id);
-        if(order == null) {
-            return false;
+        if (order == null) {
+            return null;
         }
         PriceLevel level = order.getParentLevel();
-        if(level != null) {
+        if (level != null) {
             level.unlink(order);
-            if(level.isEmpty()) {
+            if (level.isEmpty()) {
                 getBook(order.getSide()).remove(level.getPrice());
             }
         }
         order.cancel();
-        orderPool.release(order);
-        return true;
+        return order;
+    }
+
+    public void releaseOrder(Order order) {
+        if (order != null) {
+            orderPool.release(order);
+        }
     }
 
     public void removeFilledOrder(Order order) {
@@ -84,5 +93,5 @@ public class OrderBook {
     public boolean hasAsks() {
         return !asks.isEmpty();
     }
-
 }
+
