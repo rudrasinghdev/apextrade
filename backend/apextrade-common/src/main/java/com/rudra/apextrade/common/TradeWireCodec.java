@@ -5,7 +5,7 @@ import java.nio.ByteBuffer;
 /**
  * High-performance, zero-allocation binary wire codec for executed trades (Engine -> Gateway).
  *
- * Framing layout (48 bytes - 8-byte aligned for mechanical sympathy):
+ * Framing layout (56 bytes - 8-byte aligned for mechanical sympathy):
  * - Magic (2 bytes): 0x5452 ('TR')
  * - MsgType (1 byte): 1 = TRADE_EXECUTION
  * - TakerSide (1 byte): 0 = BUY, 1 = SELL
@@ -20,8 +20,13 @@ import java.nio.ByteBuffer;
 public final class TradeWireCodec {
 
     public static final short MAGIC = 0x5452;
-    public static final int FRAME_SIZE = 48;
+    public static final int FRAME_SIZE = 56;
     public static final byte MSG_TYPE_TRADE = 1;
+
+    public interface Handler {
+        void onTrade(long tradeId, long makerOrderId, long takerOrderId,
+                     Side takerSide, long price, long quantity, long timestamp);
+    }
 
     private TradeWireCodec() {
     }
@@ -48,7 +53,7 @@ public final class TradeWireCodec {
         buffer.putLong(timestamp);
     }
 
-    public static int decodeFrames(ByteBuffer buffer, TradeWireHandler handler) {
+    public static int decodeFrames(ByteBuffer buffer, Handler handler) {
         int count = 0;
         while (buffer.remaining() >= FRAME_SIZE) {
             buffer.mark();

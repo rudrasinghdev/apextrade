@@ -2,6 +2,7 @@ package com.rudra.apextrade.egress;
 
 import com.lmax.disruptor.EventHandler;
 import com.rudra.apextrade.common.TradeWireCodec;
+import lombok.Setter;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -14,11 +15,8 @@ import java.nio.channels.SocketChannel;
 public class SocketTradeDispatcher implements EventHandler<TradeEvent> {
 
     private final ByteBuffer directBuffer = ByteBuffer.allocateDirect(1024 * 64);
+    @Setter
     private volatile SocketChannel socketChannel;
-
-    public void setSocketChannel(SocketChannel socketChannel) {
-        this.socketChannel = socketChannel;
-    }
 
     @Override
     public void onEvent(TradeEvent event, long sequence, boolean endOfBatch) throws Exception {

@@ -2,9 +2,9 @@ package com.rudra.apextrade.egress;
 
 import com.lmax.disruptor.RingBuffer;
 import com.rudra.apextrade.common.Side;
-import com.rudra.apextrade.core.trade.TradeListener;
+import com.rudra.apextrade.common.TradeWireCodec;
 
-public class TradeEgressPublisher implements TradeListener {
+public class TradeEgressPublisher implements TradeWireCodec.Handler {
 
     private final RingBuffer<TradeEvent> ringBuffer;
 

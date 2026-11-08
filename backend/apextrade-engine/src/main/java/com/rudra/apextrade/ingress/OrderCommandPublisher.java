@@ -3,14 +3,25 @@ package com.rudra.apextrade.ingress;
 import com.lmax.disruptor.RingBuffer;
 import com.rudra.apextrade.common.CommandType;
 import com.rudra.apextrade.common.OrderType;
+import com.rudra.apextrade.common.OrderWireCodec;
 import com.rudra.apextrade.common.Side;
 
-public class OrderCommandPublisher {
+public class OrderCommandPublisher implements OrderWireCodec.Handler {
 
     private final RingBuffer<OrderCommandEvent> ringBuffer;
 
     public OrderCommandPublisher(RingBuffer<OrderCommandEvent> ringBuffer) {
         this.ringBuffer = ringBuffer;
+    }
+
+    @Override
+    public void onNewOrder(long orderId, long userId, Side side, OrderType orderType, long price, long quantity) {
+        publishPlaceOrder(orderId, userId, side, price, quantity, orderType, System.nanoTime());
+    }
+
+    @Override
+    public void onCancelOrder(long orderId, long userId) {
+        publishCancelOrder(orderId, System.nanoTime());
     }
 
     public void publishPlaceOrder(long orderId, long userId, Side side,

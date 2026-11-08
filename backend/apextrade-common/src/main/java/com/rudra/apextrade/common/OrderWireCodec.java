@@ -47,7 +47,12 @@ public final class OrderWireCodec {
         buffer.putLong(0L);
     }
 
-    public static int decodeFrames(ByteBuffer buffer, OrderWireHandler handler) {
+    public interface Handler {
+        void onNewOrder(long orderId, long userId, Side side, OrderType orderType, long price, long quantity);
+        void onCancelOrder(long orderId, long userId);
+    }
+
+    public static int decodeFrames(ByteBuffer buffer, Handler handler) {
         int count = 0;
         while (buffer.remaining() >= FRAME_SIZE) {
             buffer.mark();

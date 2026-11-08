@@ -26,9 +26,7 @@ WORKDIR /app
 # Copy the built engine JAR
 COPY --from=build /workspace/apextrade-engine/target/apextrade-engine-*.jar engine.jar
 
-# Dynamic Web Service HTTP port ($PORT) and Raw TCP Matching port (9000)
-ENV PORT=8080
-EXPOSE 8080
+# Expose Raw TCP Matching port (9000)
 EXPOSE 9000
 
 # Low-latency JVM pause tuning

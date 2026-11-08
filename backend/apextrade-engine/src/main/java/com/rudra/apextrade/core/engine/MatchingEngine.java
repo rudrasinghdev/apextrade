@@ -3,7 +3,7 @@ package com.rudra.apextrade.core.engine;
 import com.rudra.apextrade.core.book.OrderBook;
 import com.rudra.apextrade.core.order.*;
 import com.rudra.apextrade.common.*;
-import com.rudra.apextrade.core.trade.TradeListener;
+import com.rudra.apextrade.common.TradeWireCodec;
 import lombok.Getter;
 
 @Getter
@@ -11,7 +11,7 @@ public class MatchingEngine {
 
     private final OrderBook orderBook;
     private volatile long lastTradedPrice;
-    private final TradeListener tradeListener;
+    private final TradeWireCodec.Handler tradeListener;
     private long nextTradeId = 1L;
 
     public MatchingEngine(OrderBook orderBook) {
@@ -22,7 +22,7 @@ public class MatchingEngine {
         this(orderBook, listingPrice, null);
     }
 
-    public MatchingEngine(OrderBook orderBook, long listingPrice, TradeListener tradeListener) {
+    public MatchingEngine(OrderBook orderBook, long listingPrice, TradeWireCodec.Handler tradeListener) {
         this.orderBook = orderBook;
         this.lastTradedPrice = listingPrice;
         this.tradeListener = tradeListener;
