@@ -1,5 +1,6 @@
-package com.rudra.apextrade.engine.execution;
+package com.rudra.apextrade.client.execution;
 
+import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.YieldingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
@@ -13,7 +14,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.concurrent.ThreadFactory;
 
 @Configuration
-public class ExecutionDisruptorConfig {
+public class ExecutionDisruptor {
 
     private static final int BUFFER_SIZE = 65536;
 
@@ -31,7 +32,7 @@ public class ExecutionDisruptorConfig {
     }
 
     @Bean(destroyMethod = "shutdown")
-    public Disruptor<ExecutionEvent> executionDisruptor(
+    public Disruptor<ExecutionEvent> executionDisruptorInstance(
             ExecutionEventFactory factory,
             ExecutionDispatchHandler handler
     ) {
@@ -56,7 +57,13 @@ public class ExecutionDisruptorConfig {
     }
 
     @Bean
-    public ExecutionEventPublisher executionEventPublisher(Disruptor<ExecutionEvent> executionDisruptor) {
-        return new ExecutionEventPublisher(executionDisruptor.getRingBuffer());
+    public RingBuffer<ExecutionEvent> executionRingBuffer(Disruptor<ExecutionEvent> executionDisruptorInstance) {
+        return executionDisruptorInstance.getRingBuffer();
+    }
+
+    @Bean
+    public ExecutionEventPublisher executionEventPublisher(RingBuffer<ExecutionEvent> executionRingBuffer) {
+        return new ExecutionEventPublisher(executionRingBuffer);
     }
 }
+

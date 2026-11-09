@@ -10,7 +10,7 @@ import lombok.Getter;
 
 import java.util.concurrent.ThreadFactory;
 
-public class IngressDisruptorConfig implements AutoCloseable {
+public class IngressDisruptor implements AutoCloseable {
 
     private static final int BUFFER_SIZE = 65536;
 
@@ -18,7 +18,7 @@ public class IngressDisruptorConfig implements AutoCloseable {
     @Getter
     private final OrderCommandPublisher publisher;
 
-    public IngressDisruptorConfig(MatchingEngine matchingEngine) {
+    public IngressDisruptor(MatchingEngine matchingEngine) {
         ThreadFactory threadFactory = runnable -> new Thread(runnable, "engine-matcher-core");
 
         this.disruptor = new Disruptor<>(
@@ -40,3 +40,4 @@ public class IngressDisruptorConfig implements AutoCloseable {
         this.disruptor.shutdown();
     }
 }
+

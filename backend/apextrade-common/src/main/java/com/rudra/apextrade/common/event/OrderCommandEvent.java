@@ -44,3 +44,4 @@ public class OrderCommandEvent extends OrderCommandEventFields {
         this.userId = userId;
     }
 }
+

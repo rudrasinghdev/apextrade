@@ -9,7 +9,7 @@ import lombok.Getter;
 
 import java.util.concurrent.ThreadFactory;
 
-public class EgressDisruptorConfig implements AutoCloseable {
+public class EgressDisruptor implements AutoCloseable {
 
     private static final int BUFFER_SIZE = 65536;
 
@@ -19,7 +19,7 @@ public class EgressDisruptorConfig implements AutoCloseable {
     @Getter
     private final SocketExecutionDispatcher dispatcher;
 
-    public EgressDisruptorConfig() {
+    public EgressDisruptor() {
         this.dispatcher = new SocketExecutionDispatcher();
         ThreadFactory threadFactory = runnable -> new Thread(runnable, "engine-execution-egress");
 
@@ -42,3 +42,4 @@ public class EgressDisruptorConfig implements AutoCloseable {
         this.disruptor.shutdown();
     }
 }
+

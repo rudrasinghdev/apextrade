@@ -1,8 +1,8 @@
-package com.rudra.apextrade.engine;
+package com.rudra.apextrade.client;
 
+import com.rudra.apextrade.client.execution.ExecutionEventPublisher;
+import com.rudra.apextrade.client.order.OrderWireHandler;
 import com.rudra.apextrade.common.ExecutionWireCodec;
-import com.rudra.apextrade.engine.execution.ExecutionEventPublisher;
-import com.rudra.apextrade.engine.order.SocketWireDispatchHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,12 +15,13 @@ import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.locks.LockSupport;
 
 @Slf4j
 @Component
 public class EngineConnectionManager implements ApplicationRunner, AutoCloseable {
 
-    private final SocketWireDispatchHandler dispatchHandler;
+    private final OrderWireHandler wireHandler;
     private final ExecutionEventPublisher executionPublisher;
     private final String engineHost;
     private final int enginePort;
@@ -29,12 +30,12 @@ public class EngineConnectionManager implements ApplicationRunner, AutoCloseable
     private Thread readerThread;
 
     public EngineConnectionManager(
-            SocketWireDispatchHandler dispatchHandler,
+            OrderWireHandler wireHandler,
             ExecutionEventPublisher executionPublisher,
             @Value("${apextrade.engine.host:localhost}") String engineHost,
             @Value("${apextrade.engine.port:9000}") int enginePort
     ) {
-        this.dispatchHandler = dispatchHandler;
+        this.wireHandler = wireHandler;
         this.executionPublisher = executionPublisher;
         this.engineHost = engineHost;
         this.enginePort = enginePort;
@@ -42,8 +43,18 @@ public class EngineConnectionManager implements ApplicationRunner, AutoCloseable
 
     @Override
     public void run(@NonNull ApplicationArguments args) {
-        log.info("[S1 Gateway] Connecting to S2 Matching Engine at {}:{}", engineHost, enginePort);
+        log.info("[S1 Gateway Client] Connecting to S2 Matching Engine at {}:{}", engineHost, enginePort);
+        connectToEngine();
+    }
+
+    private synchronized boolean connectToEngine() {
         try {
+            if (this.socketChannel != null && this.socketChannel.isOpen()) {
+                try {
+                    this.socketChannel.close();
+                } catch (IOException ignored) {}
+            }
+
             this.socketChannel = SocketChannel.open();
             this.socketChannel.configureBlocking(false);
             this.socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
@@ -57,28 +68,44 @@ public class EngineConnectionManager implements ApplicationRunner, AutoCloseable
                 Thread.onSpinWait();
             }
 
-            dispatchHandler.setSocketChannel(this.socketChannel);
-            log.info("[S1 Gateway] Connected to S2 Matching Engine on port {}", enginePort);
+            wireHandler.setSocketChannel(this.socketChannel);
+            log.info("[S1 Gateway Client] Connected to S2 Matching Engine on port {}", enginePort);
 
-            // Start dedicated daemon socket reader thread for incoming executions
             startExecutionReaderThread();
+            return true;
         } catch (IOException e) {
-            log.error("[S1 Gateway] Failed to connect to S2 Matching Engine: {}", e.getMessage());
-            throw new IllegalStateException("Matching Engine unavailable at " + engineHost + ":" + enginePort, e);
+            log.warn("[S1 Gateway Client] Could not connect to S2 Matching Engine: {}", e.getMessage());
+            return false;
         }
     }
 
     private void startExecutionReaderThread() {
+        if (readerThread != null && readerThread.isAlive()) {
+            return;
+        }
+
         readerThread = new Thread(() -> {
             ByteBuffer directBuffer = ByteBuffer.allocateDirect(1024 * 64);
-            log.info("[S1 Gateway] Execution socket reader active.");
+            log.info("[S1 Gateway Client] Execution socket reader active.");
 
-            while (running && socketChannel.isOpen()) {
+            while (running) {
+                if (socketChannel == null || !socketChannel.isOpen()) {
+                    LockSupport.parkNanos(1_000_000_000L); // 1s backoff before retry
+                    if (running) {
+                        connectToEngine();
+                    }
+                    continue;
+                }
+
                 try {
                     int bytesRead = socketChannel.read(directBuffer);
                     if (bytesRead == -1) {
-                        log.warn("[S1 Gateway] S2 Engine disconnected.");
-                        break;
+                        log.warn("[S1 Gateway Client] S2 Engine disconnected. Attempting auto-reconnect...");
+                        wireHandler.setSocketChannel(null);
+                        try {
+                            socketChannel.close();
+                        } catch (IOException ignored) {}
+                        continue;
                     }
 
                     if (bytesRead > 0) {
@@ -86,13 +113,17 @@ public class EngineConnectionManager implements ApplicationRunner, AutoCloseable
                         ExecutionWireCodec.decodeFrames(directBuffer, executionPublisher);
                         directBuffer.compact();
                     } else {
-                        Thread.onSpinWait();
+                        // High-efficiency backoff: spin-wait briefly, then park 10 microseconds to yield CPU
+                        LockSupport.parkNanos(10_000L);
                     }
                 } catch (IOException e) {
                     if (running) {
-                        log.error("[S1 Gateway] Socket read error from S2: {}", e.getMessage());
+                        log.warn("[S1 Gateway Client] Socket read error from S2: {}. Reconnecting...", e.getMessage());
+                        wireHandler.setSocketChannel(null);
+                        try {
+                            socketChannel.close();
+                        } catch (IOException ignored) {}
                     }
-                    break;
                 }
             }
         }, "gateway-execution-receiver");
@@ -107,10 +138,11 @@ public class EngineConnectionManager implements ApplicationRunner, AutoCloseable
         if (socketChannel != null && socketChannel.isOpen()) {
             try {
                 socketChannel.close();
-                log.info("[S1 Gateway] SocketChannel to S2 closed.");
+                log.info("[S1 Gateway Client] SocketChannel to S2 closed.");
             } catch (IOException e) {
-                log.warn("[S1 Gateway] Error closing SocketChannel: {}", e.getMessage());
+                log.warn("[S1 Gateway Client] Error closing SocketChannel: {}", e.getMessage());
             }
         }
     }
 }
+

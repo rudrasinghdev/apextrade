@@ -63,3 +63,4 @@ public class ExecutionEvent extends ExecutionEventFields {
         return buyerOrderId != 0L ? buyerOrderId : sellerOrderId;
     }
 }
+

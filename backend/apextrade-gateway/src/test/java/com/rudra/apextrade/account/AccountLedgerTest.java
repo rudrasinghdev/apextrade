@@ -118,4 +118,58 @@ class AccountLedgerTest {
         assertEquals(1_000L, account.getReservedUsd(), "Reserved USD must equal exactly 1,000");
         assertEquals(5, account.getActiveOrderIds().size());
     }
+
+    @Test
+    @DisplayName("Partial Fill & Settle: Partial match maintains active order until fully filled")
+    void testPartialFillAndSettlement() {
+        ledger.createAccount(101L);
+        // Buyer places order for 10 BTC @ 50,000 USD = 500,000 USD margin
+        ledger.reserveBuyMargin(101L, 1L, 50_000L, 10L, System.nanoTime());
+
+        Account account = ledger.getAccount(101L);
+        assertEquals(500_000L, account.getReservedUsd());
+        assertEquals(AccountLedger.DEFAULT_INITIAL_USD - 500_000L, account.getAvailableUsd());
+        assertEquals(1, ledger.getActiveOrders(101L).size());
+
+        // Partial match 1: 3 BTC @ 50,000 USD = 150,000 USD cost
+        ledger.settleBuyTrade(101L, 1L, 150_000L, 3L);
+
+        // Order should STILL be active with 7 BTC remaining
+        assertTrue(ledger.hasActiveOrder(101L, 1L));
+        assertEquals(1, ledger.getActiveOrders(101L).size());
+        assertEquals(7L, ledger.getActiveOrders(101L).iterator().next().getRemainingQuantity());
+        assertEquals(350_000L, account.getReservedUsd());
+        assertEquals(AccountLedger.DEFAULT_INITIAL_BTC + 3L, account.getAvailableBtc());
+
+        // Partial match 2: 7 BTC @ 50,000 USD = 350,000 USD cost (fully filled)
+        ledger.settleBuyTrade(101L, 1L, 350_000L, 7L);
+
+        // Order should now be completely removed from active orders
+        assertFalse(ledger.hasActiveOrder(101L, 1L));
+        assertEquals(0, ledger.getActiveOrders(101L).size());
+        assertEquals(0L, account.getReservedUsd());
+        assertEquals(AccountLedger.DEFAULT_INITIAL_BTC + 10L, account.getAvailableBtc());
+    }
+
+    @Test
+    @DisplayName("Partial Fill Then Cancel: Cancel releases remaining margin after partial fill")
+    void testPartialFillThenCancel() {
+        ledger.createAccount(101L);
+        // Buyer places order for 10 BTC @ 50,000 USD = 500,000 USD margin
+        ledger.reserveBuyMargin(101L, 1L, 50_000L, 10L, System.nanoTime());
+
+        // Partial match: 4 BTC filled, cost 200,000 USD
+        ledger.settleBuyTrade(101L, 1L, 200_000L, 4L);
+
+        // Cancel remaining 6 BTC
+        boolean cancelled = ledger.cancelOrder(101L, 1L);
+        assertTrue(cancelled);
+
+        Account account = ledger.getAccount(101L);
+        assertFalse(ledger.hasActiveOrder(101L, 1L));
+        assertEquals(0L, account.getReservedUsd());
+        // Original USD minus 200,000 USD spent
+        assertEquals(AccountLedger.DEFAULT_INITIAL_USD - 200_000L, account.getAvailableUsd());
+        assertEquals(AccountLedger.DEFAULT_INITIAL_BTC + 4L, account.getAvailableBtc());
+    }
 }

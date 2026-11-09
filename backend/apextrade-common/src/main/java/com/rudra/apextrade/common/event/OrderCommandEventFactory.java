@@ -9,3 +9,4 @@ public class OrderCommandEventFactory implements EventFactory<OrderCommandEvent>
         return new OrderCommandEvent();
     }
 }
+

@@ -2,13 +2,16 @@ package com.rudra.apextrade.order.service;
 
 import com.rudra.apextrade.account.exception.InsufficientFundsException;
 import com.rudra.apextrade.account.service.AccountLedger;
+import com.rudra.apextrade.client.order.OrderCommandPublisher;
+import com.rudra.apextrade.common.OrderStatus;
 import com.rudra.apextrade.common.Side;
-import com.rudra.apextrade.engine.order.OrderCommandPublisher;
+import com.rudra.apextrade.order.dto.ActiveOrderResponse;
 import com.rudra.apextrade.order.dto.OrderRequest;
 import com.rudra.apextrade.order.dto.OrderResponse;
 import com.rudra.apextrade.order.exception.OrderNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -30,7 +33,7 @@ public class OrderService {
 
         if (req.side() == Side.BUY) {
             long requiredUsd = req.price() * req.quantity();
-            boolean success = ledger.reserveBuyMargin(userId, orderId, requiredUsd);
+            boolean success = ledger.reserveBuyMargin(userId, orderId, req.price(), req.quantity(), timestampNs);
             if (!success) {
                 throw new InsufficientFundsException(
                         "Insufficient USD balance: required " + requiredUsd + " USD to place BUY order."
@@ -38,7 +41,7 @@ public class OrderService {
             }
         } else if (req.side() == Side.SELL) {
             long requiredBtc = req.quantity();
-            boolean success = ledger.reserveSellMargin(userId, orderId, requiredBtc);
+            boolean success = ledger.reserveSellMargin(userId, orderId, req.price(), req.quantity(), timestampNs);
             if (!success) {
                 throw new InsufficientFundsException(
                         "Insufficient BTC balance: required " + requiredBtc + " BTC to place SELL order."
@@ -71,6 +74,22 @@ public class OrderService {
         // Margin is unlocked exclusively upon receiving execution confirmation from Engine.
         publisher.publishCancelOrder(orderId, userId, timestampNs);
         return OrderResponse.accepted(orderId, timestampNs);
+    }
+
+    public List<ActiveOrderResponse> getActiveOrders(long userId) {
+        return ledger.getActiveOrders(userId).stream()
+                .map(order -> new ActiveOrderResponse(
+                        order.getOrderId(),
+                        order.getSide(),
+                        order.getPrice(),
+                        order.getOriginalQuantity(),
+                        order.getRemainingQuantity(),
+                        order.getRemainingQuantity() == order.getOriginalQuantity()
+                                ? OrderStatus.NEW.name()
+                                : OrderStatus.PARTIALLY_FILLED.name(),
+                        order.getCreatedAtNs()
+                ))
+                .toList();
     }
 
     public Set<Long> getActiveOrderIds(long userId) {

@@ -1,6 +1,7 @@
 package com.rudra.apextrade.order.controller;
 
 import com.rudra.apextrade.auth.security.UserPrincipal;
+import com.rudra.apextrade.order.dto.ActiveOrderResponse;
 import com.rudra.apextrade.order.exception.InvalidOrderException;
 import com.rudra.apextrade.order.dto.OrderRequest;
 import com.rudra.apextrade.order.dto.OrderResponse;
@@ -9,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Set;
 
 @CrossOrigin(origins = "*")
@@ -45,9 +47,9 @@ public class OrderController {
     }
 
     @GetMapping
-    public ResponseEntity<Set<Long>> getActiveOrders(@AuthenticationPrincipal UserPrincipal principal) {
-        Set<Long> activeOrderIds = orderService.getActiveOrderIds(principal.userId());
-        return ResponseEntity.ok(activeOrderIds);
+    public ResponseEntity<List<ActiveOrderResponse>> getActiveOrders(@AuthenticationPrincipal UserPrincipal principal) {
+        List<ActiveOrderResponse> activeOrders = orderService.getActiveOrders(principal.userId());
+        return ResponseEntity.ok(activeOrders);
     }
 }
 

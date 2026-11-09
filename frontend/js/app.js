@@ -677,10 +677,12 @@
     if (!state.token || !state.user) return;
     const res = await apiRequest('/api/v1/orders');
     if (res.ok && Array.isArray(res.data)) {
-      const activeIds = new Set(res.data);
+      const activeIds = new Set(
+        res.data.map(item => (typeof item === 'object' && item !== null) ? item.orderId : item)
+      );
       let changed = false;
       state.myOrders.forEach(o => {
-        if (!activeIds.has(o.orderId) && o.status === 'QUEUED') {
+        if (!activeIds.has(o.orderId) && (o.status === 'QUEUED' || o.status === 'NEW')) {
           o.status = 'CANCELLED';
           changed = true;
         }

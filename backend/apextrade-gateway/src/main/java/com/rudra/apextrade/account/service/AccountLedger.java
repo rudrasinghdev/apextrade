@@ -4,8 +4,10 @@ import com.rudra.apextrade.account.dto.AccountBalanceResponse;
 import com.rudra.apextrade.account.exception.AccountAlreadyExistsException;
 import com.rudra.apextrade.account.exception.AccountNotFoundException;
 import com.rudra.apextrade.account.model.Account;
+import com.rudra.apextrade.account.model.ActiveOrder;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -37,8 +39,16 @@ public class AccountLedger {
         return getAccount(userId).placeBuyOrder(orderId, usdCost);
     }
 
+    public boolean reserveBuyMargin(long userId, long orderId, long price, long quantity, long timestampNs) {
+        return getAccount(userId).placeBuyOrder(orderId, price, quantity, timestampNs);
+    }
+
     public boolean reserveSellMargin(long userId, long orderId, long btcQuantity) {
         return getAccount(userId).placeSellOrder(orderId, btcQuantity);
+    }
+
+    public boolean reserveSellMargin(long userId, long orderId, long price, long quantity, long timestampNs) {
+        return getAccount(userId).placeSellOrder(orderId, price, quantity, timestampNs);
     }
 
     public boolean cancelOrder(long userId, long orderId) {
@@ -48,6 +58,10 @@ public class AccountLedger {
     public boolean hasActiveOrder(long userId, long orderId) {
         Account account = accounts.get(userId);
         return account != null && account.hasActiveOrder(orderId);
+    }
+
+    public Collection<ActiveOrder> getActiveOrders(long userId) {
+        return getAccount(userId).getActiveOrders();
     }
 
     public void settleBuyTrade(long userId, long orderId, long usdCost, long btcReceived) {

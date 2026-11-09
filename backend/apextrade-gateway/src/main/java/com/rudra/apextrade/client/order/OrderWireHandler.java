@@ -1,4 +1,4 @@
-package com.rudra.apextrade.engine.order;
+package com.rudra.apextrade.client.order;
 
 import com.lmax.disruptor.EventHandler;
 import com.rudra.apextrade.common.CommandType;
@@ -10,14 +10,14 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-public class SocketWireDispatchHandler implements EventHandler<OrderCommandEvent> {
+public class OrderWireHandler implements EventHandler<OrderCommandEvent> {
 
     private final ByteBuffer directBuffer = ByteBuffer.allocateDirect(1024 * 64);
 
     @Setter
     private volatile SocketChannel socketChannel;
 
-    public SocketWireDispatchHandler() {
+    public OrderWireHandler() {
         this.socketChannel = null;
     }
 
@@ -65,3 +65,4 @@ public class SocketWireDispatchHandler implements EventHandler<OrderCommandEvent
         directBuffer.clear();
     }
 }
+

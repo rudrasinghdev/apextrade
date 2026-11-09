@@ -1,4 +1,4 @@
-package com.rudra.apextrade.engine.order;
+package com.rudra.apextrade.client.order;
 
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.YieldingWaitStrategy;
@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.concurrent.ThreadFactory;
 
 @Configuration
-public class OrderDisruptorConfig {
+public class OrderDisruptor {
 
     private static final int BUFFER_SIZE = 65536;
 
@@ -22,14 +22,14 @@ public class OrderDisruptorConfig {
     }
 
     @Bean
-    public SocketWireDispatchHandler socketWireDispatchHandler() {
-        return new SocketWireDispatchHandler();
+    public OrderWireHandler orderWireHandler() {
+        return new OrderWireHandler();
     }
 
     @Bean(destroyMethod = "shutdown")
-    public Disruptor<OrderCommandEvent> disruptor(
+    public Disruptor<OrderCommandEvent> orderDisruptorInstance(
             OrderCommandEventFactory factory,
-            SocketWireDispatchHandler handler
+            OrderWireHandler handler
     ) {
         ThreadFactory threadFactory = runnable -> {
             Thread thread = new Thread(runnable, "gateway-socket-thread");
@@ -52,12 +52,13 @@ public class OrderDisruptorConfig {
     }
 
     @Bean
-    public RingBuffer<OrderCommandEvent> ringBuffer(Disruptor<OrderCommandEvent> disruptor) {
-        return disruptor.getRingBuffer();
+    public RingBuffer<OrderCommandEvent> orderRingBuffer(Disruptor<OrderCommandEvent> orderDisruptorInstance) {
+        return orderDisruptorInstance.getRingBuffer();
     }
 
     @Bean
-    public OrderCommandPublisher orderCommandPublisher(RingBuffer<OrderCommandEvent> ringBuffer) {
-        return new OrderCommandPublisher(ringBuffer);
+    public OrderCommandPublisher orderCommandPublisher(RingBuffer<OrderCommandEvent> orderRingBuffer) {
+        return new OrderCommandPublisher(orderRingBuffer);
     }
 }
+
