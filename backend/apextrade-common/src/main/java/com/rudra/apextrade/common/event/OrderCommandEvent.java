@@ -26,6 +26,25 @@ abstract class OrderCommandEventFields extends OrderCommandEventLhsPadding {
 public class OrderCommandEvent extends OrderCommandEventFields {
     protected long p5, p6, p7, p8;
 
+    public void setPlaceOrder(long orderId, long userId, Side side,
+                              long price, long quantity, OrderType orderType, long timestamp) {
+        this.commandType = CommandType.PLACE_ORDER;
+        this.orderId = orderId;
+        this.userId = userId;
+        this.side = side;
+        this.price = price;
+        this.quantity = quantity;
+        this.orderType = orderType;
+        this.timestamp = timestamp;
+    }
+
+    public void setCancelOrder(long orderId, long userId, long timestamp) {
+        this.commandType = CommandType.CANCEL_ORDER;
+        this.orderId = orderId;
+        this.userId = userId;
+        this.timestamp = timestamp;
+    }
+
     public void set(CommandType commandType, long userId, long orderId, Side side,
                     long price, long quantity, OrderType orderType, long timestamp) {
         this.commandType = commandType;
