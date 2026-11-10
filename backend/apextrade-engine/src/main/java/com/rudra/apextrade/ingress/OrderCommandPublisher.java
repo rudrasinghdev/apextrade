@@ -1,7 +1,6 @@
 package com.rudra.apextrade.ingress;
 
 import com.lmax.disruptor.RingBuffer;
-import com.rudra.apextrade.common.CommandType;
 import com.rudra.apextrade.common.OrderType;
 import com.rudra.apextrade.common.Side;
 import com.rudra.apextrade.common.event.OrderCommandEvent;

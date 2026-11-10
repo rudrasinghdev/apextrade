@@ -1,6 +1,6 @@
 package com.rudra.apextrade.user.service;
 
-import com.rudra.apextrade.account.service.AccountLedger;
+import com.rudra.apextrade.account.service.AccountService;
 import com.rudra.apextrade.user.dto.UserProfileResponse;
 import com.rudra.apextrade.user.exception.UserNotFoundException;
 import com.rudra.apextrade.user.model.User;
@@ -14,11 +14,11 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final AccountLedger accountLedger;
+    private final AccountService accountService;
 
-    public UserService(UserRepository userRepository, AccountLedger accountLedger) {
+    public UserService(UserRepository userRepository, AccountService accountService) {
         this.userRepository = userRepository;
-        this.accountLedger = accountLedger;
+        this.accountService = accountService;
     }
 
     @Transactional
@@ -29,7 +29,7 @@ public class UserService {
                 .createdAt(System.currentTimeMillis())
                 .build();
         User savedUser = userRepository.save(user);
-        accountLedger.createAccount(savedUser.getUserId());
+        accountService.createAccount(savedUser.getUserId());
         return savedUser;
     }
 
@@ -49,8 +49,8 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + userId));
 
         return new UserProfileResponse(
-                user.getUserId(),
                 user.getEmail(),
+                user.getUserId(),
                 user.getCreatedAt()
         );
     }

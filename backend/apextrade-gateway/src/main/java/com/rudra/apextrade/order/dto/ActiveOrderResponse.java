@@ -6,9 +6,8 @@ public record ActiveOrderResponse(
         long orderId,
         Side side,
         long price,
-        long originalQuantity,
+        long initialQuantity,
         long remainingQuantity,
-        String status,
         long timestampNs
 ) {
 }

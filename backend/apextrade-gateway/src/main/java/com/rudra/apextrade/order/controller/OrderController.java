@@ -6,12 +6,12 @@ import com.rudra.apextrade.order.exception.InvalidOrderException;
 import com.rudra.apextrade.order.dto.OrderRequest;
 import com.rudra.apextrade.order.dto.OrderResponse;
 import com.rudra.apextrade.order.service.OrderService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Set;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -27,7 +27,7 @@ public class OrderController {
     @PostMapping
     public ResponseEntity<OrderResponse> placeOrder(
             @AuthenticationPrincipal UserPrincipal principal,
-            @RequestBody OrderRequest request
+            @Valid @RequestBody OrderRequest request
     ) {
         OrderResponse response = orderService.placeOrder(principal.userId(), request);
         return ResponseEntity.ok(response);
@@ -47,9 +47,22 @@ public class OrderController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ActiveOrderResponse>> getActiveOrders(@AuthenticationPrincipal UserPrincipal principal) {
-        List<ActiveOrderResponse> activeOrders = orderService.getActiveOrders(principal.userId());
-        return ResponseEntity.ok(activeOrders);
+    public ResponseEntity<List<ActiveOrderResponse>> getAllActiveOrders(@AuthenticationPrincipal UserPrincipal principal) {
+        List<ActiveOrderResponse> allActiveOrders = orderService.getAllActiveOrders(principal.userId());
+        return ResponseEntity.ok(allActiveOrders);
+    }
+
+    @GetMapping("/{orderId}")
+    public ResponseEntity<ActiveOrderResponse> getActiveOrderById(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable("orderId") long orderId
+    ) {
+        if (orderId <= 0) {
+            throw new InvalidOrderException("Invalid orderId: " + orderId);
+        }
+
+        ActiveOrderResponse activeOrder = orderService.getActiveOrderById(principal.userId(), orderId);
+        return ResponseEntity.ok(activeOrder);
     }
 }
 

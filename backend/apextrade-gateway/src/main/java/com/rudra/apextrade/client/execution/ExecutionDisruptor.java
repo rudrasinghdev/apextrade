@@ -4,7 +4,7 @@ import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.YieldingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
-import com.rudra.apextrade.account.service.AccountLedger;
+import com.rudra.apextrade.account.service.AccountService;
 import com.rudra.apextrade.common.event.ExecutionEvent;
 import com.rudra.apextrade.common.event.ExecutionEventFactory;
 import com.rudra.apextrade.websocket.TradeWebSocketHandler;
@@ -25,7 +25,7 @@ public class ExecutionDisruptor {
 
     @Bean
     public ExecutionDispatchHandler executionDispatchHandler(
-            AccountLedger ledger,
+            AccountService ledger,
             TradeWebSocketHandler webSocketHandler
     ) {
         return new ExecutionDispatchHandler(ledger, webSocketHandler);

@@ -1,9 +1,9 @@
 package com.rudra.apextrade.order.service;
 
 import com.rudra.apextrade.account.exception.InsufficientFundsException;
-import com.rudra.apextrade.account.service.AccountLedger;
+import com.rudra.apextrade.account.model.ActiveOrder;
+import com.rudra.apextrade.account.service.AccountService;
 import com.rudra.apextrade.client.order.OrderCommandPublisher;
-import com.rudra.apextrade.common.OrderStatus;
 import com.rudra.apextrade.common.Side;
 import com.rudra.apextrade.order.dto.ActiveOrderResponse;
 import com.rudra.apextrade.order.dto.OrderRequest;
@@ -12,19 +12,18 @@ import com.rudra.apextrade.order.exception.OrderNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class OrderService {
 
-    private final OrderCommandPublisher publisher;
-    private final AccountLedger ledger;
     private final AtomicLong orderIdSequence = new AtomicLong(1);
+    private final OrderCommandPublisher publisher;
+    private final AccountService accountService;
 
-    public OrderService(OrderCommandPublisher publisher, AccountLedger ledger) {
+    public OrderService(OrderCommandPublisher publisher, AccountService accountService) {
         this.publisher = publisher;
-        this.ledger = ledger;
+        this.accountService = accountService;
     }
 
     public OrderResponse placeOrder(long userId, OrderRequest req) {
@@ -32,32 +31,29 @@ public class OrderService {
         long timestampNs = System.nanoTime();
 
         if (req.side() == Side.BUY) {
-            long requiredUsd = req.price() * req.quantity();
-            boolean success = ledger.reserveBuyMargin(userId, orderId, req.price(), req.quantity(), timestampNs);
+            boolean success = accountService.reserveBuyMargin(userId, orderId, req.price(), req.quantity(),
+                    timestampNs);
             if (!success) {
                 throw new InsufficientFundsException(
-                        "Insufficient USD balance: required " + requiredUsd + " USD to place BUY order."
-                );
+                        "Insufficient USD balance: required " + req.price() * req.quantity() + " USD to place BUY order.");
             }
-        } else if (req.side() == Side.SELL) {
-            long requiredBtc = req.quantity();
-            boolean success = ledger.reserveSellMargin(userId, orderId, req.price(), req.quantity(), timestampNs);
+        } else {
+            boolean success = accountService.reserveSellMargin(userId, orderId, req.price(), req.quantity(),
+                    timestampNs);
             if (!success) {
                 throw new InsufficientFundsException(
-                        "Insufficient BTC balance: required " + requiredBtc + " BTC to place SELL order."
-                );
+                        "Insufficient BTC balance: required " + req.quantity() + " BTC to place SELL order.");
             }
         }
 
         publisher.publishPlaceOrder(
-                orderId,
                 userId,
+                orderId,
                 req.side(),
                 req.price(),
                 req.quantity(),
                 req.orderType(),
-                timestampNs
-        );
+                timestampNs);
 
         return OrderResponse.accepted(orderId, timestampNs);
     }
@@ -65,34 +61,37 @@ public class OrderService {
     public OrderResponse cancelOrder(long userId, long orderId) {
         long timestampNs = System.nanoTime();
 
-        if (!ledger.hasActiveOrder(userId, orderId)) {
-            throw new OrderNotFoundException("Order #" + orderId + " not found or does not belong to trader #" + userId);
+        if (!accountService.hasActiveOrder(userId, orderId)) {
+            throw new OrderNotFoundException(
+                    "Order #" + orderId + " not found or does not belong to trader #" + userId);
         }
 
-        // Deterministic zero-race order cancellation:
-        // Gateway dispatches CANCEL command to S2 Engine without prematurely unlocking margin.
-        // Margin is unlocked exclusively upon receiving execution confirmation from Engine.
-        publisher.publishCancelOrder(orderId, userId, timestampNs);
+        publisher.publishCancelOrder(userId, orderId, timestampNs);
         return OrderResponse.accepted(orderId, timestampNs);
     }
 
-    public List<ActiveOrderResponse> getActiveOrders(long userId) {
-        return ledger.getActiveOrders(userId).stream()
-                .map(order -> new ActiveOrderResponse(
-                        order.getOrderId(),
-                        order.getSide(),
-                        order.getPrice(),
-                        order.getOriginalQuantity(),
-                        order.getRemainingQuantity(),
-                        order.getRemainingQuantity() == order.getOriginalQuantity()
-                                ? OrderStatus.NEW.name()
-                                : OrderStatus.PARTIALLY_FILLED.name(),
-                        order.getCreatedAtNs()
-                ))
+    public List<ActiveOrderResponse> getAllActiveOrders(long userId) {
+        return accountService.getActiveOrders(userId).stream()
+                .map(this::mapToActiveOrderResponse)
                 .toList();
     }
 
-    public Set<Long> getActiveOrderIds(long userId) {
-        return ledger.getActiveOrderIds(userId);
+    public ActiveOrderResponse getActiveOrderById(long userId, long orderId) {
+        ActiveOrder order = accountService.getActiveOrder(userId, orderId);
+        if (order == null) {
+            throw new OrderNotFoundException("Order #" + orderId + " not found or does not belong to trader #" + userId);
+        }
+        return mapToActiveOrderResponse(order);
+    }
+
+    private ActiveOrderResponse mapToActiveOrderResponse(ActiveOrder order) {
+        return new ActiveOrderResponse(
+                order.getOrderId(),
+                order.getSide(),
+                order.getPrice(),
+                order.getInitialQuantity(),
+                order.getRemainingQuantity(),
+                order.getTimestamp()
+        );
     }
 }

@@ -14,8 +14,8 @@ public class OrderCommandPublisher {
     }
 
     public void publishPlaceOrder(
-            long orderId,
             long userId,
+            long orderId,
             Side side,
             long price,
             long quantity,
@@ -31,8 +31,8 @@ public class OrderCommandPublisher {
     }
 
     public void publishCancelOrder(
-            long orderId,
             long userId,
+            long orderId,
             long timestamp) {
         long sequence = ringBuffer.next();
         try {

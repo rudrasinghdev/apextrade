@@ -34,11 +34,11 @@ public class EngineServer {
 
     private void runLoop() {
         try (Selector selector = Selector.open();
-             ServerSocketChannel serverChannel = ServerSocketChannel.open()) {
+             ServerSocketChannel serverSocketChannel = ServerSocketChannel.open()) {
 
-            serverChannel.configureBlocking(false);
-            serverChannel.bind(new InetSocketAddress(port));
-            serverChannel.register(selector, SelectionKey.OP_ACCEPT);
+            serverSocketChannel.configureBlocking(false);
+            serverSocketChannel.bind(new InetSocketAddress(port));
+            serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
             System.out.println("[S2 Engine TCP Server] Listening on port " + port);
 
@@ -56,7 +56,7 @@ public class EngineServer {
 
                     try {
                         if (key.isAcceptable()) {
-                            handleAccept(selector, serverChannel);
+                            handleAccept(selector, key);
                         } else if (key.isReadable()) {
                             handleRead(key);
                         }
@@ -71,33 +71,35 @@ public class EngineServer {
         }
     }
 
-    private void handleAccept(Selector selector, ServerSocketChannel ssc) throws IOException {
-        SocketChannel sc = ssc.accept();
-        if (sc != null) {
-            sc.configureBlocking(false);
-            sc.setOption(StandardSocketOptions.TCP_NODELAY, true);
-            executionDispatcher.setSocketChannel(sc);
+    private void handleAccept(Selector selector, SelectionKey key) throws IOException {
+        if(key.channel() instanceof ServerSocketChannel serverSocketChannel) {
+            SocketChannel socketChannel = serverSocketChannel.accept();
+            if(socketChannel != null) {
+                socketChannel.configureBlocking(false);
+                socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
+                executionDispatcher.setSocketChannel(socketChannel);
 
-            ByteBuffer readBuffer = ByteBuffer.allocateDirect(1024 * 64);
-            sc.register(selector, SelectionKey.OP_READ, readBuffer);
-            System.out.println("[S2 Engine TCP Server] Gateway S1 connected from: " + sc.getRemoteAddress());
+                ByteBuffer readBuffer = ByteBuffer.allocateDirect(1024 * 64);
+                socketChannel.register(selector, SelectionKey.OP_READ, readBuffer);
+                System.out.println("[S2 Engine TCP Server] Gateway S1 connected from: " + socketChannel.getRemoteAddress());
+            }
         }
     }
 
     private void handleRead(SelectionKey key) throws IOException {
-        SocketChannel sc = (SocketChannel) key.channel();
-        ByteBuffer buffer = (ByteBuffer) key.attachment();
+        if(key.channel() instanceof SocketChannel socketChannel) {
+            ByteBuffer buffer = (ByteBuffer) key.attachment();
+            int bytesRead = socketChannel.read(buffer);
+            if (bytesRead == -1) {
+                System.out.println("[S2 Engine TCP Server] Gateway S1 disconnected.");
+                closeConnection(key);
+                return;
+            }
 
-        int bytesRead = sc.read(buffer);
-        if (bytesRead == -1) {
-            System.out.println("[S2 Engine TCP Server] Gateway S1 disconnected.");
-            closeConnection(key);
-            return;
+            buffer.flip();
+            ingressHandler.handle(buffer);
+            buffer.compact();
         }
-
-        buffer.flip();
-        ingressHandler.handle(buffer);
-        buffer.compact();
     }
 
     private void closeConnection(SelectionKey key) {

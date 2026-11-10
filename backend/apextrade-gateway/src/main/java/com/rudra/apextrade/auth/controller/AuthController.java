@@ -5,6 +5,7 @@ import com.rudra.apextrade.auth.dto.LoginResponse;
 import com.rudra.apextrade.auth.dto.RegisterRequest;
 import com.rudra.apextrade.auth.dto.RegisterResponse;
 import com.rudra.apextrade.auth.service.AuthService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,13 +24,13 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest req) {
+    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest req) {
         RegisterResponse response = authService.register(req);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req) {
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest req) {
         LoginResponse response = authService.login(req);
         return ResponseEntity.ok(response);
     }

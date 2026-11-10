@@ -11,17 +11,17 @@ public class ActiveOrder {
     private final long orderId;
     private final Side side;
     private final long price;
-    private final long originalQuantity;
+    private final long initialQuantity;
     private final AtomicLong remainingQuantity;
-    private final long createdAtNs;
+    private final long timestamp;
 
-    public ActiveOrder(long orderId, Side side, long price, long quantity, long createdAtNs) {
+    public ActiveOrder(long orderId, Side side, long price, long quantity, long timestamp) {
         this.orderId = orderId;
         this.side = side;
         this.price = price;
-        this.originalQuantity = quantity;
+        this.initialQuantity = quantity;
         this.remainingQuantity = new AtomicLong(quantity);
-        this.createdAtNs = createdAtNs;
+        this.timestamp = timestamp;
     }
 
     public long getRemainingQuantity() {

@@ -1,7 +1,7 @@
 package com.rudra.apextrade.client.execution;
 
 import com.lmax.disruptor.EventHandler;
-import com.rudra.apextrade.account.service.AccountLedger;
+import com.rudra.apextrade.account.service.AccountService;
 import com.rudra.apextrade.common.ExecutionType;
 import com.rudra.apextrade.common.event.ExecutionEvent;
 import com.rudra.apextrade.websocket.TradeWebSocketHandler;
@@ -16,11 +16,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ExecutionDispatchHandler implements EventHandler<ExecutionEvent> {
 
-    private final AccountLedger ledger;
+    private final AccountService ledger;
     private final TradeWebSocketHandler webSocketHandler;
 
     public ExecutionDispatchHandler(
-            AccountLedger ledger,
+            AccountService ledger,
             TradeWebSocketHandler webSocketHandler
     ) {
         this.ledger = ledger;
