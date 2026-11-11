@@ -1,23 +1,23 @@
-package com.rudra.apextrade.client.order;
+package com.rudra.apextrade.transport.order;
 
 import com.lmax.disruptor.EventHandler;
-import com.rudra.apextrade.common.CommandType;
-import com.rudra.apextrade.common.OrderCommandCodec;
+import com.rudra.apextrade.common.domain.CommandType;
 import com.rudra.apextrade.common.event.OrderCommandEvent;
+import com.rudra.apextrade.common.wire.OrderCommandCodec;
 import lombok.Setter;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-public class OrderWireHandler implements EventHandler<OrderCommandEvent> {
+public class OrderNetworkWriter implements EventHandler<OrderCommandEvent> {
 
     private final ByteBuffer directBuffer = ByteBuffer.allocateDirect(1024 * 64);
 
     @Setter
     private volatile SocketChannel socketChannel;
 
-    public OrderWireHandler() {
+    public OrderNetworkWriter() {
         this.socketChannel = null;
     }
 
@@ -54,15 +54,13 @@ public class OrderWireHandler implements EventHandler<OrderCommandEvent> {
         }
     }
 
-    private void flush() throws IOException {
+    public void flush() throws IOException {
         directBuffer.flip();
-        SocketChannel channel = this.socketChannel;
-        if (channel != null && channel.isOpen() && channel.isConnected()) {
+        if (socketChannel != null && socketChannel.isConnected()) {
             while (directBuffer.hasRemaining()) {
-                channel.write(directBuffer);
+                socketChannel.write(directBuffer);
             }
         }
         directBuffer.clear();
     }
 }
-

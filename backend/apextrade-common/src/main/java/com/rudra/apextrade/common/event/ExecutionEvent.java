@@ -1,7 +1,7 @@
 package com.rudra.apextrade.common.event;
 
-import com.rudra.apextrade.common.ExecutionType;
-import com.rudra.apextrade.common.Side;
+import com.rudra.apextrade.common.domain.ExecutionType;
+import com.rudra.apextrade.common.domain.Side;
 import lombok.Getter;
 
 abstract class ExecutionEventLhsPadding {

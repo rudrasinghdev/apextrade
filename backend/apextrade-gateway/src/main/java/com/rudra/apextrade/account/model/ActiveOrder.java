@@ -1,6 +1,6 @@
 package com.rudra.apextrade.account.model;
 
-import com.rudra.apextrade.common.Side;
+import com.rudra.apextrade.common.domain.Side;
 import lombok.Getter;
 
 import java.util.concurrent.atomic.AtomicLong;

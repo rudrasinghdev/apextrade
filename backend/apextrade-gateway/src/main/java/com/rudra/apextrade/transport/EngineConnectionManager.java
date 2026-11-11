@@ -1,8 +1,8 @@
-package com.rudra.apextrade.client;
+package com.rudra.apextrade.transport;
 
-import com.rudra.apextrade.client.execution.ExecutionEventPublisher;
-import com.rudra.apextrade.client.order.OrderWireHandler;
-import com.rudra.apextrade.common.ExecutionWireCodec;
+import com.rudra.apextrade.common.wire.ExecutionWireCodec;
+import com.rudra.apextrade.transport.execution.ExecutionEventPublisher;
+import com.rudra.apextrade.transport.order.OrderNetworkWriter;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +21,7 @@ import java.util.concurrent.locks.LockSupport;
 @Component
 public class EngineConnectionManager implements ApplicationRunner, AutoCloseable {
 
-    private final OrderWireHandler wireHandler;
+    private final OrderNetworkWriter networkWriter;
     private final ExecutionEventPublisher executionPublisher;
     private final String engineHost;
     private final int enginePort;
@@ -30,12 +30,12 @@ public class EngineConnectionManager implements ApplicationRunner, AutoCloseable
     private Thread readerThread;
 
     public EngineConnectionManager(
-            OrderWireHandler wireHandler,
+            OrderNetworkWriter networkWriter,
             ExecutionEventPublisher executionPublisher,
             @Value("${apextrade.engine.host:localhost}") String engineHost,
             @Value("${apextrade.engine.port:9000}") int enginePort
     ) {
-        this.wireHandler = wireHandler;
+        this.networkWriter = networkWriter;
         this.executionPublisher = executionPublisher;
         this.engineHost = engineHost;
         this.enginePort = enginePort;
@@ -43,7 +43,7 @@ public class EngineConnectionManager implements ApplicationRunner, AutoCloseable
 
     @Override
     public void run(@NonNull ApplicationArguments args) {
-        log.info("[S1 Gateway Client] Connecting to S2 Matching Engine at {}:{}", engineHost, enginePort);
+        log.info("[S1 Gateway Transport] Connecting to S2 Matching Engine at {}:{}", engineHost, enginePort);
         connectToEngine();
     }
 
@@ -68,13 +68,13 @@ public class EngineConnectionManager implements ApplicationRunner, AutoCloseable
                 Thread.onSpinWait();
             }
 
-            wireHandler.setSocketChannel(this.socketChannel);
-            log.info("[S1 Gateway Client] Connected to S2 Matching Engine on port {}", enginePort);
+            networkWriter.setSocketChannel(this.socketChannel);
+            log.info("[S1 Gateway Transport] Connected to S2 Matching Engine on port {}", enginePort);
 
             startExecutionReaderThread();
             return true;
         } catch (IOException e) {
-            log.warn("[S1 Gateway Client] Could not connect to S2 Matching Engine: {}", e.getMessage());
+            log.warn("[S1 Gateway Transport] Could not connect to S2 Matching Engine: {}", e.getMessage());
             return false;
         }
     }
@@ -86,7 +86,7 @@ public class EngineConnectionManager implements ApplicationRunner, AutoCloseable
 
         readerThread = new Thread(() -> {
             ByteBuffer directBuffer = ByteBuffer.allocateDirect(1024 * 64);
-            log.info("[S1 Gateway Client] Execution socket reader active.");
+            log.info("[S1 Gateway Transport] Execution socket reader active.");
 
             while (running) {
                 if (socketChannel == null || !socketChannel.isOpen()) {
@@ -100,8 +100,8 @@ public class EngineConnectionManager implements ApplicationRunner, AutoCloseable
                 try {
                     int bytesRead = socketChannel.read(directBuffer);
                     if (bytesRead == -1) {
-                        log.warn("[S1 Gateway Client] S2 Engine disconnected. Attempting auto-reconnect...");
-                        wireHandler.setSocketChannel(null);
+                        log.warn("[S1 Gateway Transport] S2 Engine disconnected. Attempting auto-reconnect...");
+                        networkWriter.setSocketChannel(null);
                         try {
                             socketChannel.close();
                         } catch (IOException ignored) {}
@@ -118,8 +118,8 @@ public class EngineConnectionManager implements ApplicationRunner, AutoCloseable
                     }
                 } catch (IOException e) {
                     if (running) {
-                        log.warn("[S1 Gateway Client] Socket read error from S2: {}. Reconnecting...", e.getMessage());
-                        wireHandler.setSocketChannel(null);
+                        log.warn("[S1 Gateway Transport] Socket read error from S2: {}. Reconnecting...", e.getMessage());
+                        networkWriter.setSocketChannel(null);
                         try {
                             socketChannel.close();
                         } catch (IOException ignored) {}
@@ -138,11 +138,10 @@ public class EngineConnectionManager implements ApplicationRunner, AutoCloseable
         if (socketChannel != null && socketChannel.isOpen()) {
             try {
                 socketChannel.close();
-                log.info("[S1 Gateway Client] SocketChannel to S2 closed.");
+                log.info("[S1 Gateway Transport] SocketChannel to S2 closed.");
             } catch (IOException e) {
-                log.warn("[S1 Gateway Client] Error closing SocketChannel: {}", e.getMessage());
+                log.warn("[S1 Gateway Transport] Error closing SocketChannel: {}", e.getMessage());
             }
         }
     }
 }
-

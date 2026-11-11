@@ -1,4 +1,4 @@
-package com.rudra.apextrade.client.order;
+package com.rudra.apextrade.transport.order;
 
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.YieldingWaitStrategy;
@@ -22,14 +22,14 @@ public class OrderDisruptor {
     }
 
     @Bean
-    public OrderWireHandler orderWireHandler() {
-        return new OrderWireHandler();
+    public OrderNetworkWriter orderNetworkWriter() {
+        return new OrderNetworkWriter();
     }
 
     @Bean(destroyMethod = "shutdown")
     public Disruptor<OrderCommandEvent> orderDisruptorInstance(
             OrderCommandEventFactory factory,
-            OrderWireHandler handler
+            OrderNetworkWriter handler
     ) {
         ThreadFactory threadFactory = runnable -> {
             Thread thread = new Thread(runnable, "gateway-socket-thread");
@@ -47,18 +47,16 @@ public class OrderDisruptor {
 
         disruptor.handleEventsWith(handler);
         disruptor.start();
-
         return disruptor;
     }
 
     @Bean
-    public RingBuffer<OrderCommandEvent> orderRingBuffer(Disruptor<OrderCommandEvent> orderDisruptorInstance) {
-        return orderDisruptorInstance.getRingBuffer();
+    public RingBuffer<OrderCommandEvent> orderRingBuffer(Disruptor<OrderCommandEvent> disruptor) {
+        return disruptor.getRingBuffer();
     }
 
     @Bean
-    public OrderCommandPublisher orderCommandPublisher(RingBuffer<OrderCommandEvent> orderRingBuffer) {
-        return new OrderCommandPublisher(orderRingBuffer);
+    public OrderCommandPublisher orderCommandPublisher(RingBuffer<OrderCommandEvent> ringBuffer) {
+        return new OrderCommandPublisher(ringBuffer);
     }
 }
-

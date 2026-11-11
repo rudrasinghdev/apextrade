@@ -1,6 +1,6 @@
 package com.rudra.apextrade.order.dto;
 
-import com.rudra.apextrade.common.Side;
+import com.rudra.apextrade.common.domain.Side;
 
 public record ActiveOrderResponse(
         long orderId,

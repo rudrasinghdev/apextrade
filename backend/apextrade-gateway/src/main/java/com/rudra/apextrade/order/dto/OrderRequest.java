@@ -1,7 +1,7 @@
 package com.rudra.apextrade.order.dto;
 
-import com.rudra.apextrade.common.OrderType;
-import com.rudra.apextrade.common.Side;
+import com.rudra.apextrade.common.domain.OrderType;
+import com.rudra.apextrade.common.domain.Side;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 

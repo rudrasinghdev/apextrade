@@ -1,4 +1,4 @@
-package com.rudra.apextrade.common;
+package com.rudra.apextrade.common.domain;
 
 /**
  * Ingress command classification shared across Gateway and Engine.

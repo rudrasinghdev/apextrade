@@ -1,8 +1,8 @@
 package com.rudra.apextrade.common.event;
 
-import com.rudra.apextrade.common.CommandType;
-import com.rudra.apextrade.common.OrderType;
-import com.rudra.apextrade.common.Side;
+import com.rudra.apextrade.common.domain.CommandType;
+import com.rudra.apextrade.common.domain.OrderType;
+import com.rudra.apextrade.common.domain.Side;
 import lombok.Getter;
 import lombok.Setter;
 

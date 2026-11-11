@@ -1,8 +1,8 @@
 package com.rudra.apextrade.matching;
 
-import com.rudra.apextrade.common.ExecutionWireCodec;
-import com.rudra.apextrade.common.OrderType;
-import com.rudra.apextrade.common.Side;
+import com.rudra.apextrade.common.wire.ExecutionWireCodec;
+import com.rudra.apextrade.common.domain.OrderType;
+import com.rudra.apextrade.common.domain.Side;
 import lombok.Getter;
 
 @Getter

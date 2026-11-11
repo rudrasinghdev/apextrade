@@ -1,4 +1,4 @@
-package com.rudra.apextrade.client;
+package com.rudra.apextrade.transport;
 
 import com.rudra.apextrade.web.error.ApexTradeException;
 import org.springframework.http.HttpStatus;

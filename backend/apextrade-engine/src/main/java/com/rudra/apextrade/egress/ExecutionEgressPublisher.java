@@ -1,8 +1,8 @@
 package com.rudra.apextrade.egress;
 
 import com.lmax.disruptor.RingBuffer;
-import com.rudra.apextrade.common.ExecutionWireCodec;
-import com.rudra.apextrade.common.Side;
+import com.rudra.apextrade.common.wire.ExecutionWireCodec;
+import com.rudra.apextrade.common.domain.Side;
 import com.rudra.apextrade.common.event.ExecutionEvent;
 
 public class ExecutionEgressPublisher implements ExecutionWireCodec.Handler {

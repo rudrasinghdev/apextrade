@@ -1,7 +1,7 @@
 package com.rudra.apextrade.matching;
 
-import com.rudra.apextrade.common.OrderType;
-import com.rudra.apextrade.common.Side;
+import com.rudra.apextrade.common.domain.OrderType;
+import com.rudra.apextrade.common.domain.Side;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

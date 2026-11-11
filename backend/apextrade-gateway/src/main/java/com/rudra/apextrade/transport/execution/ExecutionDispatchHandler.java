@@ -1,16 +1,16 @@
-package com.rudra.apextrade.client.execution;
+package com.rudra.apextrade.transport.execution;
 
 import com.lmax.disruptor.EventHandler;
 import com.rudra.apextrade.account.service.AccountService;
-import com.rudra.apextrade.common.ExecutionType;
+import com.rudra.apextrade.common.domain.ExecutionType;
 import com.rudra.apextrade.common.event.ExecutionEvent;
 import com.rudra.apextrade.websocket.TradeWebSocketHandler;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * Consumes execution outcomes from S1 Execution Disruptor.
- * 1. On TRADE: Settles buyer and seller balances in AccountLedger without reverse-lookups.
- * 2. On CANCEL: Releases reserved margin in AccountLedger on Engine confirmation.
+ * 1. On TRADE: Settles buyer and seller balances in AccountService without reverse-lookups.
+ * 2. On CANCEL: Releases reserved margin in AccountService on Engine confirmation.
  * 3. Broadcasts live execution events to WebSocket subscribers on /ws/trades.
  */
 @Slf4j
@@ -63,7 +63,7 @@ public class ExecutionDispatchHandler implements EventHandler<ExecutionEvent> {
         long userId = cancel.getCancelledUserId();
         long orderId = cancel.getCancelledOrderId();
 
-        log.info("[S1 Gateway] Order #{} cancel confirmed by Engine. Unlocking margin for user #{}.", orderId, userId);
+        log.info("[S1 Gateway Transport] Order #{} cancel confirmed by Engine. Unlocking margin for user #{}.", orderId, userId);
 
         ledger.cancelOrder(userId, orderId);
 
@@ -78,4 +78,3 @@ public class ExecutionDispatchHandler implements EventHandler<ExecutionEvent> {
         webSocketHandler.broadcast(jsonPayload);
     }
 }
-

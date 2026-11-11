@@ -1,5 +1,6 @@
-package com.rudra.apextrade.common;
+package com.rudra.apextrade.common.wire;
 
+import com.rudra.apextrade.common.domain.Side;
 import java.nio.ByteBuffer;
 
 /**

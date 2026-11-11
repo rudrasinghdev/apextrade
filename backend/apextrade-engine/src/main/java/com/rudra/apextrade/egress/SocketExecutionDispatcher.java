@@ -1,8 +1,8 @@
 package com.rudra.apextrade.egress;
 
 import com.lmax.disruptor.EventHandler;
-import com.rudra.apextrade.common.ExecutionType;
-import com.rudra.apextrade.common.ExecutionWireCodec;
+import com.rudra.apextrade.common.domain.ExecutionType;
+import com.rudra.apextrade.common.wire.ExecutionWireCodec;
 import com.rudra.apextrade.common.event.ExecutionEvent;
 import lombok.Setter;
 

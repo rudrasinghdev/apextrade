@@ -1,12 +1,12 @@
 package com.rudra.apextrade.ingress;
 
-import com.rudra.apextrade.common.OrderCommandCodec;
-import com.rudra.apextrade.common.OrderType;
-import com.rudra.apextrade.common.Side;
+import com.rudra.apextrade.common.domain.OrderType;
+import com.rudra.apextrade.common.domain.Side;
+import com.rudra.apextrade.common.wire.OrderCommandCodec;
 
 import java.nio.ByteBuffer;
 
-public class OrderIngressHandler {
+public class OrderIngressHandler implements OrderCommandCodec.Handler {
 
     private final OrderCommandPublisher publisher;
 
@@ -15,32 +15,16 @@ public class OrderIngressHandler {
     }
 
     public void handle(ByteBuffer buffer) {
-        while (buffer.remaining() >= OrderCommandCodec.FRAME_SIZE) {
-            buffer.mark();
-            short magic = buffer.getShort();
-            if (magic != OrderCommandCodec.MAGIC) {
-                buffer.reset();
-                buffer.get();
-                continue;
-            }
+        OrderCommandCodec.decodeFrames(buffer, this);
+    }
 
-            byte msgType = buffer.get();
-            byte sideByte = buffer.get();
-            byte orderTypeByte = buffer.get();
-            buffer.get();
-            buffer.getShort();
-            long orderId = buffer.getLong();
-            long userId = buffer.getLong();
-            long price = buffer.getLong();
-            long quantity = buffer.getLong();
+    @Override
+    public void onPlaceOrder(long orderId, long userId, Side side, long price, long quantity, OrderType orderType) {
+        publisher.publishPlaceOrder(orderId, userId, side, price, quantity, orderType, System.nanoTime());
+    }
 
-            if (msgType == OrderCommandCodec.MSG_TYPE_NEW_ORDER) {
-                Side side = (sideByte == 0) ? Side.BUY : Side.SELL;
-                OrderType orderType = (orderTypeByte == 0) ? OrderType.LIMIT : OrderType.MARKET;
-                publisher.publishPlaceOrder(orderId, userId, side, price, quantity, orderType, System.nanoTime());
-            } else if (msgType == OrderCommandCodec.MSG_TYPE_CANCEL_ORDER) {
-                publisher.publishCancelOrder(orderId, userId, System.nanoTime());
-            }
-        }
+    @Override
+    public void onCancelOrder(long orderId, long userId) {
+        publisher.publishCancelOrder(orderId, userId, System.nanoTime());
     }
 }

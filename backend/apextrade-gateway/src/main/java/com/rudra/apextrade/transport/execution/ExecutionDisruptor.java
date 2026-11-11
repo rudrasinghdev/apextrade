@@ -1,4 +1,4 @@
-package com.rudra.apextrade.client.execution;
+package com.rudra.apextrade.transport.execution;
 
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.YieldingWaitStrategy;
@@ -62,8 +62,7 @@ public class ExecutionDisruptor {
     }
 
     @Bean
-    public ExecutionEventPublisher executionEventPublisher(RingBuffer<ExecutionEvent> executionRingBuffer) {
-        return new ExecutionEventPublisher(executionRingBuffer);
+    public ExecutionEventPublisher executionEventPublisher(RingBuffer<ExecutionEvent> ringBuffer) {
+        return new ExecutionEventPublisher(ringBuffer);
     }
 }
-
