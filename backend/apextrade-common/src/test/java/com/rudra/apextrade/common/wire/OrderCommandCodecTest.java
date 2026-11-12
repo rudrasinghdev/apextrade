@@ -16,21 +16,21 @@ class OrderCommandCodecTest {
 
     private ByteBuffer buffer;
 
-    record DecodedPlaceOrder(long orderId, long userId, Side side, long price, long quantity, OrderType orderType) {}
-    record DecodedCancelOrder(long orderId, long userId) {}
+    record DecodedPlaceOrder(long userId, long orderId, Side side, long price, long quantity, OrderType orderType) {}
+    record DecodedCancelOrder(long userId, long orderId) {}
 
     private final List<DecodedPlaceOrder> placeOrders = new ArrayList<>();
     private final List<DecodedCancelOrder> cancelOrders = new ArrayList<>();
 
     private final OrderCommandCodec.Handler testHandler = new OrderCommandCodec.Handler() {
         @Override
-        public void onPlaceOrder(long orderId, long userId, Side side, long price, long quantity, OrderType orderType) {
-            placeOrders.add(new DecodedPlaceOrder(orderId, userId, side, price, quantity, orderType));
+        public void onPlaceOrder(long userId, long orderId, Side side, long price, long quantity, OrderType orderType) {
+            placeOrders.add(new DecodedPlaceOrder(userId, orderId, side, price, quantity, orderType));
         }
 
         @Override
-        public void onCancelOrder(long orderId, long userId) {
-            cancelOrders.add(new DecodedCancelOrder(orderId, userId));
+        public void onCancelOrder(long userId, long orderId) {
+            cancelOrders.add(new DecodedCancelOrder(userId, orderId));
         }
     };
 
@@ -44,7 +44,7 @@ class OrderCommandCodecTest {
     @Test
     @DisplayName("Encode & Decode Single Place Order Frame (40 bytes)")
     void testEncodeDecodePlaceOrder() {
-        OrderCommandCodec.encodePlaceOrder(buffer, 1001L, 501L, Side.BUY, 65_000L, 10L, OrderType.LIMIT);
+        OrderCommandCodec.encodePlaceOrder(buffer, 501L, 1001L, Side.BUY, 65_000L, 10L, OrderType.LIMIT);
         assertEquals(OrderCommandCodec.NEW_ORDER_FRAME_SIZE, buffer.position());
 
         buffer.flip();
@@ -55,8 +55,8 @@ class OrderCommandCodecTest {
         assertEquals(1, placeOrders.size());
 
         DecodedPlaceOrder order = placeOrders.getFirst();
-        assertEquals(1001L, order.orderId());
         assertEquals(501L, order.userId());
+        assertEquals(1001L, order.orderId());
         assertEquals(Side.BUY, order.side());
         assertEquals(65_000L, order.price());
         assertEquals(10L, order.quantity());
@@ -66,7 +66,7 @@ class OrderCommandCodecTest {
     @Test
     @DisplayName("Encode & Decode Single Cancel Order Frame (20 bytes - 50% reduction)")
     void testEncodeDecodeCancelOrder() {
-        OrderCommandCodec.encodeCancelOrder(buffer, 1002L, 501L);
+        OrderCommandCodec.encodeCancelOrder(buffer, 501L, 1002L);
         assertEquals(OrderCommandCodec.CANCEL_FRAME_SIZE, buffer.position());
 
         buffer.flip();
@@ -77,16 +77,16 @@ class OrderCommandCodecTest {
         assertEquals(1, cancelOrders.size());
 
         DecodedCancelOrder cancel = cancelOrders.getFirst();
-        assertEquals(1002L, cancel.orderId());
         assertEquals(501L, cancel.userId());
+        assertEquals(1002L, cancel.orderId());
     }
 
     @Test
     @DisplayName("Interleaved Batch: [Place, Cancel, Place] variable sequence in a single buffer")
     void testInterleavedBatch() {
-        OrderCommandCodec.encodePlaceOrder(buffer, 1L, 10L, Side.SELL, 50_000L, 5L, OrderType.LIMIT);
-        OrderCommandCodec.encodeCancelOrder(buffer, 99L, 10L);
-        OrderCommandCodec.encodePlaceOrder(buffer, 2L, 20L, Side.BUY, 50_000L, 5L, OrderType.MARKET);
+        OrderCommandCodec.encodePlaceOrder(buffer, 10L, 1L, Side.SELL, 50_000L, 5L, OrderType.LIMIT);
+        OrderCommandCodec.encodeCancelOrder(buffer, 10L, 99L);
+        OrderCommandCodec.encodePlaceOrder(buffer, 20L, 2L, Side.BUY, 50_000L, 5L, OrderType.MARKET);
 
         int expectedBytes = OrderCommandCodec.NEW_ORDER_FRAME_SIZE + OrderCommandCodec.CANCEL_FRAME_SIZE + OrderCommandCodec.NEW_ORDER_FRAME_SIZE;
         assertEquals(expectedBytes, buffer.position());
@@ -98,8 +98,11 @@ class OrderCommandCodecTest {
         assertEquals(2, placeOrders.size());
         assertEquals(1, cancelOrders.size());
 
+        assertEquals(10L, placeOrders.get(0).userId());
         assertEquals(1L, placeOrders.get(0).orderId());
+        assertEquals(10L, cancelOrders.get(0).userId());
         assertEquals(99L, cancelOrders.get(0).orderId());
+        assertEquals(20L, placeOrders.get(1).userId());
         assertEquals(2L, placeOrders.get(1).orderId());
         assertEquals(OrderType.MARKET, placeOrders.get(1).orderType());
     }
@@ -108,10 +111,10 @@ class OrderCommandCodecTest {
     @DisplayName("Partial Frame Handling: Decoder safely rewinds when full command is not yet received")
     void testPartialFrameHandling() {
         // Encode a complete Place Order (40B) and only 10 bytes of a Cancel Order (needs 20B)
-        OrderCommandCodec.encodePlaceOrder(buffer, 1L, 10L, Side.BUY, 50_000L, 1L, OrderType.LIMIT);
+        OrderCommandCodec.encodePlaceOrder(buffer, 10L, 1L, Side.BUY, 50_000L, 1L, OrderType.LIMIT);
 
         ByteBuffer tempCancel = ByteBuffer.allocate(OrderCommandCodec.CANCEL_FRAME_SIZE);
-        OrderCommandCodec.encodeCancelOrder(tempCancel, 2L, 10L);
+        OrderCommandCodec.encodeCancelOrder(tempCancel, 10L, 2L);
         tempCancel.flip();
 
         byte[] partial = new byte[10];
@@ -136,6 +139,7 @@ class OrderCommandCodecTest {
         int secondDecoded = OrderCommandCodec.decodeFrames(buffer, testHandler);
         assertEquals(1, secondDecoded);
         assertEquals(1, cancelOrders.size());
+        assertEquals(10L, cancelOrders.getFirst().userId());
         assertEquals(2L, cancelOrders.getFirst().orderId());
         assertEquals(0, buffer.remaining());
     }

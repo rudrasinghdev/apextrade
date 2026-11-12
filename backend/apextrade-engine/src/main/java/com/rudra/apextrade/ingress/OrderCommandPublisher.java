@@ -13,7 +13,7 @@ public class OrderCommandPublisher {
         this.ringBuffer = ringBuffer;
     }
 
-    public void publishPlaceOrder(long orderId, long userId, Side side,
+    public void publishPlaceOrder(long userId, long orderId, Side side,
                                    long price, long quantity, OrderType orderType, long timestamp) {
         long sequence = ringBuffer.next();
         try {
@@ -24,7 +24,7 @@ public class OrderCommandPublisher {
         }
     }
 
-    public void publishCancelOrder(long orderId, long userId, long timestamp) {
+    public void publishCancelOrder(long userId, long orderId, long timestamp) {
         long sequence = ringBuffer.next();
         try {
             OrderCommandEvent event = ringBuffer.get(sequence);

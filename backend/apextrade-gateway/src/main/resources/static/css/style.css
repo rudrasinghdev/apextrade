@@ -1,0 +1,1314 @@
+/* ==========================================================================
+   ApexTrade Core — Coinbase Spain Design System
+   "Digital Trust, Blueprinted."
+   ========================================================================== */
+
+:root {
+  /* Colors */
+  --color-coinbase-blue: #0052ff;
+  --color-interactive-blue: #578bfa;
+  --color-pure-white: #ffffff;
+  --color-midnight: #0a0b0d;
+  --color-slate: #5b616e;
+  --color-ash: #8a919e;
+  --color-frost: #f7f8f9;
+  --color-cloud: #eef0f3;
+  --color-pewter: #dedfe2;
+  --color-charcoal: #141519;
+  --color-positive-green: #27ad75;
+  --color-negative-red: #f0616d;
+
+  /* Typography Fonts */
+  --font-display: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Monaco, Consolas, monospace;
+
+  /* Typography Scale */
+  --text-caption: 13px;
+  --leading-caption: 1.54;
+  --text-body: 16px;
+  --leading-body: 1.5;
+  --text-subheading: 18px;
+  --leading-subheading: 1.56;
+  --text-heading-sm: 24px;
+  --leading-heading-sm: 1.25;
+  --text-heading: 36px;
+  --leading-heading: 1.15;
+  --text-heading-lg: 56px;
+  --leading-heading-lg: 1.05;
+
+  /* Spacing Scale */
+  --spacing-8: 8px;
+  --spacing-16: 16px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+  --spacing-48: 48px;
+  --spacing-64: 64px;
+  --spacing-80: 80px;
+
+  /* Border Radii */
+  --radius-buttons: 56px;
+  --radius-cards: 24px;
+  --radius-inputs: 8px;
+  --radius-tags: 100000px;
+}
+
+/* ==========================================================================
+   Base & Reset
+   ========================================================================== */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--color-pure-white);
+  color: var(--color-midnight);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  min-height: 100vh;
+}
+
+.font-mono {
+  font-family: var(--font-mono) !important;
+}
+
+.font-bold {
+  font-weight: 700 !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-frost);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-pewter);
+  border-radius: var(--radius-tags);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ash);
+}
+
+/* ==========================================================================
+   Global Navigation Bar
+   ========================================================================== */
+
+.coinbase-nav {
+  background-color: var(--color-pure-white);
+  border-bottom: 1px solid var(--color-pewter);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 14px var(--spacing-24);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-16);
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-glyph {
+  width: 32px;
+  height: 32px;
+  background-color: var(--color-coinbase-blue);
+  color: var(--color-pure-white);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.brand-name {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-midnight);
+  letter-spacing: -0.5px;
+}
+
+.brand-sub {
+  color: var(--color-coinbase-blue);
+  margin-left: 2px;
+}
+
+.gateway-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-frost);
+  border: 1px solid var(--color-pewter);
+  padding: 4px 12px;
+  border-radius: var(--radius-tags);
+  font-size: var(--text-caption);
+  color: var(--color-slate);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.dot-online {
+  background-color: var(--color-positive-green);
+}
+
+.status-dot.dot-offline {
+  background-color: var(--color-negative-red);
+}
+
+.status-dot.dot-pending,
+.status-dot.dot-standby {
+  background-color: var(--color-coinbase-blue);
+}
+
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pill-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  background-color: var(--color-frost);
+  border: 1px solid var(--color-pewter);
+  border-radius: var(--radius-tags);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-slate);
+  letter-spacing: 0.5px;
+}
+
+.btn-env {
+  background-color: var(--color-cloud);
+  color: var(--color-coinbase-blue);
+  border: 1px solid rgba(0, 82, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-env:hover {
+  background-color: #e2e8f5;
+  border-color: var(--color-coinbase-blue);
+}
+
+.nav-specs-group {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .nav-specs-group {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Views Management
+   ========================================================================== */
+
+.view {
+  min-height: calc(100vh - 65px);
+  display: flex;
+  flex-direction: column;
+}
+
+.hidden,
+.view.hidden {
+  display: none !important;
+}
+
+/* ==========================================================================
+   VIEW 1: Hero & Auth Section (2-Column Architectural Layout)
+   ========================================================================== */
+
+.hero-section {
+  background: var(--color-pure-white);
+  padding: var(--spacing-64) var(--spacing-24);
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.hero-container {
+  max-width: 1240px;
+  margin: 0 auto;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: var(--spacing-64);
+  align-items: center;
+}
+
+@media (max-width: 960px) {
+  .hero-container {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-48);
+  }
+}
+
+.hero-badge-tag {
+  display: inline-block;
+  padding: 6px 14px;
+  background-color: var(--color-frost);
+  border: 1px solid var(--color-pewter);
+  color: var(--color-slate);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  border-radius: var(--radius-tags);
+  margin-bottom: var(--spacing-24);
+}
+
+.hero-headline {
+  font-family: var(--font-display);
+  font-size: var(--text-heading-lg);
+  line-height: var(--leading-heading-lg);
+  font-weight: 700;
+  color: var(--color-midnight);
+  letter-spacing: -1.5px;
+  margin-bottom: var(--spacing-24);
+}
+
+.hero-subtext {
+  font-size: var(--text-subheading);
+  line-height: var(--leading-subheading);
+  color: var(--color-slate);
+  max-width: 580px;
+  margin-bottom: var(--spacing-48);
+}
+
+.hero-feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-16);
+  margin-bottom: var(--spacing-48);
+}
+
+@media (max-width: 540px) {
+  .hero-feature-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.feature-card {
+  background: var(--color-frost);
+  border: 1px solid var(--color-pewter);
+  border-radius: 16px;
+  padding: var(--spacing-16) var(--spacing-24);
+}
+
+.feature-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--color-ash);
+  margin-bottom: 4px;
+}
+
+.feature-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-midnight);
+  margin-bottom: 4px;
+}
+
+.feature-detail {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-slate);
+}
+
+.hero-proof-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-24);
+  padding-top: var(--spacing-24);
+  border-top: 1px solid var(--color-cloud);
+}
+
+.proof-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.proof-number {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--color-coinbase-blue);
+  line-height: 1.1;
+}
+
+.proof-label {
+  font-size: 12px;
+  color: var(--color-slate);
+}
+
+.proof-divider {
+  width: 1px;
+  height: 32px;
+  background-color: var(--color-pewter);
+}
+
+/* ==========================================================================
+   Cards (Coinbase Elevation: 24px radius, pure color blocks, no shadows)
+   ========================================================================== */
+
+.coinbase-card {
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-pewter);
+  border-radius: var(--radius-cards);
+  padding: var(--spacing-32);
+  box-shadow: none !important;
+}
+
+.auth-header {
+  margin-bottom: var(--spacing-24);
+}
+
+.auth-title {
+  font-family: var(--font-display);
+  font-size: var(--text-heading-sm);
+  font-weight: 700;
+  color: var(--color-midnight);
+  margin-bottom: 6px;
+}
+
+.auth-subtitle {
+  font-size: 14px;
+  color: var(--color-slate);
+}
+
+/* Segmented Control (Pill Tabs) */
+.segmented-control {
+  display: flex;
+  background: var(--color-cloud);
+  padding: 4px;
+  border-radius: var(--radius-tags);
+  margin-bottom: var(--spacing-24);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px 0;
+  border: none;
+  background: transparent;
+  color: var(--color-slate);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-tags);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.tab-btn.active {
+  background: var(--color-pure-white);
+  color: var(--color-midnight);
+}
+
+/* Forms & Inputs */
+.coinbase-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  animation: tabFadeIn 0.22s ease-out;
+}
+
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-midnight);
+}
+
+.input-base {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-pewter);
+  border-radius: var(--radius-inputs);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--color-midnight);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-base:focus {
+  border-color: var(--color-coinbase-blue);
+  box-shadow: 0 0 0 1px var(--color-coinbase-blue);
+}
+
+.field-hint {
+  font-size: 11px;
+  color: var(--color-ash);
+}
+
+/* Alert Banner */
+.alert-banner {
+  padding: 12px 16px;
+  border-radius: var(--radius-inputs);
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: var(--spacing-16);
+}
+
+.alert-banner.alert-error {
+  background-color: #fdebee;
+  border: 1px solid rgba(240, 97, 109, 0.4);
+  color: var(--color-negative-red);
+}
+
+.alert-banner.alert-success {
+  background-color: #eaf7f1;
+  border: 1px solid rgba(39, 173, 117, 0.4);
+  color: var(--color-positive-green);
+}
+
+/* ==========================================================================
+   Buttons (Coinbase Spain Signatures)
+   ========================================================================== */
+
+.btn {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+/* Primary CTA: 56px border-radius pill button */
+.btn-primary-cta {
+  background-color: var(--color-coinbase-blue);
+  color: var(--color-pure-white);
+  border-radius: var(--radius-buttons);
+  padding: 14px 28px;
+  font-size: 16px;
+  font-weight: 600;
+  width: 100%;
+  height: 52px;
+}
+
+.btn-primary-cta:hover {
+  background-color: #0045d8;
+}
+
+.btn-upgrade-pill {
+  height: 56px;
+  font-size: 16px;
+}
+
+/* Secondary Pill Button */
+.btn-secondary-pill {
+  background-color: var(--color-cloud);
+  color: var(--color-midnight);
+  border-radius: var(--radius-tags);
+  padding: 10px 22px;
+  font-size: 14px;
+}
+
+.btn-secondary-pill:hover {
+  background-color: var(--color-pewter);
+}
+
+/* Ghost Link Button */
+.btn-ghost-link {
+  background: transparent;
+  color: var(--color-interactive-blue);
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+.btn-ghost-link:hover {
+  text-decoration: underline;
+}
+
+.btn-sm {
+  height: 36px;
+  padding: 0 16px;
+  font-size: 13px;
+}
+
+.btn-xs {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+/* ==========================================================================
+   Launchpad Screen (Session Overview)
+   ========================================================================== */
+
+.launchpad-card {
+  padding: var(--spacing-32);
+}
+
+.launchpad-header {
+  margin-bottom: var(--spacing-24);
+}
+
+.tag-status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: var(--radius-tags);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.tag-success {
+  background-color: #eaf7f1;
+  color: var(--color-positive-green);
+}
+
+.launchpad-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--color-midnight);
+  margin-bottom: 4px;
+}
+
+.launchpad-subtitle {
+  font-size: 14px;
+  color: var(--color-slate);
+}
+
+.user-profile-strip {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: var(--spacing-16);
+  background: var(--color-frost);
+  border-radius: 16px;
+  margin-bottom: var(--spacing-16);
+}
+
+.user-avatar {
+  width: 44px;
+  height: 44px;
+  background-color: var(--color-coinbase-blue);
+  color: var(--color-pure-white);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.user-details {
+  flex: 1;
+}
+
+.user-role-tag {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--color-coinbase-blue);
+  letter-spacing: 0.5px;
+}
+
+.user-email-text {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-midnight);
+}
+
+.user-id-text {
+  font-size: 13px;
+  color: var(--color-slate);
+}
+
+/* Dual-Asset Ledger Strip */
+.user-balance-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--color-pure-white);
+  border: 1px solid var(--color-pewter);
+  border-radius: 12px;
+  margin-bottom: var(--spacing-16);
+}
+
+.balance-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.balance-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--color-ash);
+}
+
+.balance-amount {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-midnight);
+}
+
+.balance-divider {
+  width: 1px;
+  height: 28px;
+  background-color: var(--color-pewter);
+}
+
+.text-positive {
+  color: var(--color-positive-green) !important;
+}
+
+.text-danger {
+  color: var(--color-negative-red) !important;
+}
+
+.margin-check-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--color-slate);
+  margin-top: 6px;
+  margin-bottom: var(--spacing-16);
+  padding: 0 4px;
+}
+
+.margin-check-value {
+  font-weight: 600;
+  color: var(--color-midnight);
+}
+
+.token-inspect-box {
+  background: var(--color-frost);
+  border: 1px solid var(--color-pewter);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: var(--spacing-24);
+}
+
+.token-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--color-ash);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.token-value {
+  font-size: 12px;
+  color: var(--color-slate);
+  word-break: break-all;
+}
+
+.launchpad-cta-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: var(--spacing-16);
+}
+
+.launchpad-footnote {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-ash);
+  text-align: center;
+}
+
+/* ==========================================================================
+   VIEW 2: Trading Terminal Layout
+   ========================================================================== */
+
+#terminal-view {
+  background-color: var(--color-frost);
+}
+
+.terminal-subnav {
+  background-color: var(--color-pure-white);
+  border-bottom: 1px solid var(--color-pewter);
+  padding: 10px var(--spacing-24);
+}
+
+.subnav-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-16);
+  flex-wrap: wrap;
+}
+
+.subnav-left, .subnav-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-16);
+}
+
+.market-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background-color: var(--color-cloud);
+  border-radius: var(--radius-tags);
+}
+
+.market-symbol {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-midnight);
+}
+
+.market-type {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-coinbase-blue);
+  background: var(--color-pure-white);
+  padding: 2px 6px;
+  border-radius: var(--radius-tags);
+}
+
+.subnav-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--color-ash);
+}
+
+.stat-value {
+  font-size: 14px;
+  color: var(--color-midnight);
+}
+
+.text-interactive {
+  color: var(--color-coinbase-blue) !important;
+}
+
+.ws-indicator-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-cloud);
+  padding: 4px 10px;
+  border-radius: var(--radius-tags);
+  font-size: 11px;
+}
+
+.trader-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-frost);
+  border: 1px solid var(--color-pewter);
+  padding: 4px 12px;
+  border-radius: var(--radius-tags);
+  font-size: 13px;
+}
+
+.chip-avatar {
+  font-size: 11px;
+  color: var(--color-coinbase-blue);
+}
+
+.chip-email {
+  font-weight: 600;
+}
+
+.chip-id {
+  color: var(--color-slate);
+}
+
+/* Terminal Grid */
+.terminal-layout {
+  padding: var(--spacing-24);
+  flex: 1;
+}
+
+.terminal-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 360px 1.2fr 1fr;
+  gap: var(--spacing-24);
+  align-items: start;
+}
+
+@media (max-width: 1200px) {
+  .terminal-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card-header {
+  margin-bottom: var(--spacing-24);
+}
+
+.card-header.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-heading {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-midnight);
+}
+
+.card-subheading {
+  font-size: 12px;
+  color: var(--color-slate);
+}
+
+.header-action-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.count-pill {
+  background: var(--color-cloud);
+  padding: 2px 8px;
+  border-radius: var(--radius-tags);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Side Toggle: 56px Pill Toggle */
+.side-pill-group {
+  display: flex;
+  background: var(--color-cloud);
+  padding: 4px;
+  border-radius: var(--radius-buttons);
+  margin-bottom: var(--spacing-16);
+}
+
+.side-btn {
+  flex: 1;
+  height: 44px;
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: var(--radius-buttons);
+  cursor: pointer;
+  color: var(--color-slate);
+  transition: all 0.2s;
+}
+
+.side-btn.active-buy {
+  background-color: var(--color-positive-green);
+  color: var(--color-pure-white);
+}
+
+.side-btn.active-sell {
+  background-color: var(--color-negative-red);
+  color: var(--color-pure-white);
+}
+
+/* Type Toggle: 100000px Pill Tags */
+.type-pill-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: var(--spacing-24);
+}
+
+.type-btn {
+  flex: 1;
+  height: 36px;
+  background: var(--color-frost);
+  border: 1px solid var(--color-pewter);
+  border-radius: var(--radius-tags);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-slate);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.type-btn.active {
+  background-color: var(--color-midnight);
+  color: var(--color-pure-white);
+  border-color: var(--color-midnight);
+}
+
+/* Stepper Input */
+.input-stepper-box {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-pewter);
+  border-radius: var(--radius-inputs);
+  overflow: hidden;
+  background: var(--color-pure-white);
+}
+
+.stepper-btn {
+  width: 44px;
+  height: 44px;
+  background: var(--color-frost);
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-midnight);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.stepper-btn:hover {
+  background-color: var(--color-cloud);
+}
+
+.input-stepper {
+  border: none;
+  border-radius: 0;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  height: 44px;
+}
+
+.input-stepper:focus {
+  box-shadow: none;
+}
+
+.quick-preset-row {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.preset-tag {
+  flex: 1;
+  padding: 4px 0;
+  background: var(--color-frost);
+  border: 1px solid var(--color-pewter);
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--color-slate);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.preset-tag:hover {
+  background: var(--color-cloud);
+  color: var(--color-midnight);
+}
+
+.notional-summary {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px var(--spacing-16);
+  background: var(--color-frost);
+  border-radius: var(--radius-inputs);
+  margin-bottom: var(--spacing-16);
+  font-size: 13px;
+}
+
+.notional-label {
+  color: var(--color-slate);
+}
+
+.notional-value {
+  color: var(--color-midnight);
+}
+
+.btn-order-submit {
+  height: 52px;
+  width: 100%;
+  border-radius: var(--radius-buttons);
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: var(--spacing-16);
+}
+
+.btn-buy-cta {
+  background-color: var(--color-positive-green);
+  color: var(--color-pure-white);
+}
+.btn-buy-cta:hover {
+  background-color: #219966;
+}
+
+.btn-sell-cta {
+  background-color: var(--color-negative-red);
+  color: var(--color-pure-white);
+}
+.btn-sell-cta:hover {
+  background-color: #db4f5b;
+}
+
+.test-helper-card {
+  padding-top: var(--spacing-16);
+  border-top: 1px solid var(--color-cloud);
+}
+
+.helper-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--color-ash);
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* Status Banner */
+.status-banner {
+  padding: 12px 16px;
+  border-radius: var(--radius-inputs);
+  margin-top: var(--spacing-16);
+}
+
+.status-banner.banner-success {
+  background-color: #eaf7f1;
+  border: 1px solid rgba(39, 173, 117, 0.4);
+}
+
+.status-banner.banner-error {
+  background-color: #fdebee;
+  border: 1px solid rgba(240, 97, 109, 0.4);
+}
+
+.banner-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.banner-desc {
+  font-size: 11px;
+}
+
+/* ==========================================================================
+   Coinbase Modern Tables
+   ========================================================================== */
+
+.table-wrapper {
+  overflow-x: auto;
+  max-height: 520px;
+}
+
+.coinbase-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.coinbase-table th {
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--color-slate);
+  background-color: var(--color-frost);
+  border-bottom: 1px solid var(--color-pewter);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.coinbase-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-cloud);
+  color: var(--color-midnight);
+}
+
+.coinbase-table tr:hover td {
+  background-color: var(--color-frost);
+}
+
+.empty-row td {
+  text-align: center;
+  color: var(--color-ash);
+  padding: var(--spacing-48) var(--spacing-16);
+}
+
+/* Table Badges & Status */
+.badge-side {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-tags);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.badge-buy {
+  background-color: #eaf7f1;
+  color: var(--color-positive-green);
+}
+
+.badge-sell {
+  background-color: #fdebee;
+  color: var(--color-negative-red);
+}
+
+.badge-type {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-slate);
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-tags);
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.status-queued {
+  background-color: var(--color-cloud);
+  color: var(--color-midnight);
+}
+
+.status-filled {
+  background-color: #eaf7f1;
+  color: var(--color-positive-green);
+  border: 1px solid rgba(39, 173, 117, 0.3);
+}
+
+.status-pending_cancel,
+.status-pending-cancel {
+  background-color: #fef7e0;
+  color: #b06000;
+  border: 1px solid rgba(255, 179, 0, 0.4);
+}
+
+.status-resting {
+  background-color: #e8f0fe;
+  color: var(--color-coinbase-blue);
+  border: 1px solid rgba(0, 82, 255, 0.3);
+}
+
+.status-cancelled {
+  background-color: var(--color-frost);
+  color: var(--color-ash);
+}
+
+.ltp-flash-up {
+  color: var(--color-positive-green) !important;
+  text-shadow: 0 0 8px rgba(39, 173, 117, 0.6);
+  transition: all 0.3s ease;
+}
+
+.ltp-flash-down {
+  color: var(--color-negative-red) !important;
+  text-shadow: 0 0 8px rgba(240, 97, 109, 0.6);
+  transition: all 0.3s ease;
+}
+
+.btn-cancel {
+  background-color: transparent;
+  color: var(--color-negative-red);
+  border: 1px solid rgba(240, 97, 109, 0.3);
+  border-radius: var(--radius-tags);
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+  background-color: var(--color-negative-red);
+  color: var(--color-pure-white);
+}
+
+.btn-cancel:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  border-color: transparent;
+  color: var(--color-ash);
+}
+
+
+/* Utility Text Classes */
+.text-positive, .text-success {
+  color: var(--color-positive-green) !important;
+}
+
+.text-negative, .text-sell {
+  color: var(--color-negative-red) !important;
+}
+
+.text-slate, .text-secondary {
+  color: var(--color-slate) !important;
+}
+
+.text-muted {
+  color: var(--color-ash) !important;
+}
+
+.text-cyan {
+  color: var(--color-coinbase-blue) !important;
+}

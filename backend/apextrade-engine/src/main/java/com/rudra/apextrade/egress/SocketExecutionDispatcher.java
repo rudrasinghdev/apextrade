@@ -69,11 +69,21 @@ public class SocketExecutionDispatcher implements EventHandler<ExecutionEvent> {
 
     public void flush() throws IOException {
         directBuffer.flip();
+        int bytesToWrite = directBuffer.remaining();
+        if (bytesToWrite == 0) {
+            directBuffer.clear();
+            return;
+        }
+
         SocketChannel channel = this.socketChannel;
         if (channel != null && channel.isOpen() && channel.isConnected()) {
+            int written = 0;
             while (directBuffer.hasRemaining()) {
-                channel.write(directBuffer);
+                written += channel.write(directBuffer);
             }
+            System.out.printf("[Engine Egress] Flushed %d bytes of execution frames to Gateway TCP socket.%n", written);
+        } else {
+            System.err.printf("[Engine Egress] WARNING: Dropped %d bytes: Gateway socket channel is not connected.%n", bytesToWrite);
         }
         directBuffer.clear();
     }

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ApexTrade Core // Digital Trust, Blueprinted</title>
+  
+  <!-- Google Fonts: Manrope (Headlines) & Inter (UI/Body) & JetBrains Mono (Terminal) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app-container">
+
+    <!-- Global Header / Navigation -->
+    <header class="coinbase-nav">
+      <div class="nav-container">
+        <div class="nav-brand">
+          <div class="brand-glyph">▲</div>
+          <span class="brand-name">ApexTrade<span class="brand-sub">Core</span></span>
+          <div class="gateway-status-pill" id="gateway-indicator">
+            <span class="status-dot dot-pending" id="gateway-dot"></span>
+            <span id="gateway-status-text" class="status-text font-mono">Connecting...</span>
+          </div>
+        </div>
+
+        <div class="nav-controls">
+          <button type="button" id="btn-toggle-env" class="pill-tag btn-env" title="Toggle between Render Cloud and Localhost">
+            ⚡ Target: Cloud (Render)
+          </button>
+          <div class="nav-specs-group">
+            <span class="pill-tag">LMAX DISRUPTOR</span>
+            <span class="pill-tag">ZERO-GC INGRESS</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ==================== VIEW 1: HERO & AUTH GATE ==================== -->
+    <section id="welcome-view" class="view active">
+      <div class="hero-section">
+        <div class="hero-container">
+          
+          <!-- Left Column: Architectural Plan & Value Prop -->
+          <div class="hero-content">
+            <div class="hero-badge-tag">APEXTRADE CORE v1.0</div>
+            <h1 class="hero-headline">Digital Trust, Blueprinted.</h1>
+            <p class="hero-subtext">
+              An institutional-grade order matching engine and gateway built on the clarity of an architectural plan, energized by nanosecond mechanical sympathy.
+            </p>
+
+            <div class="hero-feature-grid">
+              <div class="feature-card">
+                <div class="feature-label">INGRESS PIPELINE</div>
+                <div class="feature-value">LMAX Disruptor MPSC</div>
+                <div class="feature-detail">65,536 slot ring buffer with zero object allocation during order flight.</div>
+              </div>
+              <div class="feature-card">
+                <div class="feature-label">COLD-PATH IDENTITY</div>
+                <div class="feature-value">Single-Pass JWT</div>
+                <div class="feature-detail">Cryptographic verification in RAM with serverless Neon PostgreSQL persistence.</div>
+              </div>
+              <div class="feature-card">
+                <div class="feature-label">OFF-HEAP EGRESS</div>
+                <div class="feature-value">DirectByteBuffer</div>
+                <div class="feature-detail">Native binary wire codec with batch flushing for sub-microsecond serialization.</div>
+              </div>
+              <div class="feature-card">
+                <div class="feature-label">STREAMING PROTOCOL</div>
+                <div class="feature-value">WebSocket Feed</div>
+                <div class="feature-detail">Broadcast trade stream with concurrent session multiplexing (Standby).</div>
+              </div>
+            </div>
+
+            <div class="hero-proof-strip">
+              <div class="proof-item">
+                <span class="proof-number">&lt; 1 ms</span>
+                <span class="proof-label">Cold-Path Auth</span>
+              </div>
+              <div class="proof-divider"></div>
+              <div class="proof-item">
+                <span class="proof-number">0 GC</span>
+                <span class="proof-label">Ingress Allocation</span>
+              </div>
+              <div class="proof-divider"></div>
+              <div class="proof-item">
+                <span class="proof-number">100%</span>
+                <span class="proof-label">Stateless Gateway</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Interactive Auth Gate / Launchpad -->
+          <div class="hero-interactive">
+            
+            <!-- AUTH CARD: When unauthenticated -->
+            <div id="auth-container" class="coinbase-card auth-card">
+              <div class="auth-header">
+                <h2 class="auth-title">Gateway Access</h2>
+                <p class="auth-subtitle">Sign in or register an account on the Neon database.</p>
+              </div>
+
+              <!-- Segmented Pill Tabs -->
+              <div class="segmented-control" role="tablist">
+                <button type="button" class="tab-btn active" id="tab-login" data-tab="login">Sign In</button>
+                <button type="button" class="tab-btn" id="tab-register" data-tab="register">Create Account</button>
+              </div>
+
+              <!-- Alert Banner -->
+              <div id="auth-alert" class="alert-banner hidden"></div>
+
+              <!-- LOGIN FORM -->
+              <form id="form-login" class="coinbase-form" novalidate>
+                <div class="form-field">
+                  <label for="login-email">Email Address</label>
+                  <input type="email" id="login-email" class="input-base" placeholder="trader@apextrade.com" required autocomplete="email">
+                </div>
+                <div class="form-field">
+                  <label for="login-password">Password</label>
+                  <input type="password" id="login-password" class="input-base" placeholder="••••••••" required autocomplete="current-password">
+                </div>
+                <button type="submit" id="btn-login-submit" class="btn btn-primary-cta">
+                  <span>Sign In</span>
+                </button>
+              </form>
+
+              <!-- REGISTER FORM -->
+              <form id="form-register" class="coinbase-form hidden" novalidate>
+                <div class="form-field">
+                  <label for="reg-email">Email Address</label>
+                  <input type="email" id="reg-email" class="input-base" placeholder="trader@apextrade.com" required autocomplete="email">
+                </div>
+                <div class="form-field">
+                  <label for="reg-password">Password</label>
+                  <input type="password" id="reg-password" class="input-base" placeholder="••••••••" required autocomplete="new-password">
+                  <span class="field-hint">Must contain at least 6 characters</span>
+                </div>
+                <button type="submit" id="btn-register-submit" class="btn btn-primary-cta">
+                  <span>Create Account</span>
+                </button>
+              </form>
+            </div>
+
+            <!-- LAUNCHPAD CARD: When authenticated -->
+            <div id="launchpad-container" class="coinbase-card launchpad-card hidden">
+              <div class="launchpad-header">
+                <span class="tag-status tag-success">ACTIVE SESSION</span>
+                <h2 class="launchpad-title">Trader Cockpit</h2>
+                <p class="launchpad-subtitle">Identity validated in RAM. Ingress pipeline unlocked.</p>
+              </div>
+
+              <div class="user-profile-strip">
+                <div class="user-avatar">▲</div>
+                <div class="user-details">
+                  <div class="user-role-tag" id="lp-user-role">ROLE_TRADER</div>
+                  <div class="user-email-text" id="lp-user-email">trader@apextrade.com</div>
+                  <div class="user-id-text font-mono">Assigned Trader ID: <strong id="lp-user-id">#--</strong></div>
+                </div>
+              </div>
+
+              <!-- Dual-Asset In-Memory Ledger Strip -->
+              <div class="user-balance-strip">
+                <div class="balance-item">
+                  <span class="balance-label">AVAILABLE USD</span>
+                  <span class="balance-amount font-mono text-positive" id="lp-available-usd">$100,000.00</span>
+                </div>
+                <div class="balance-divider"></div>
+                <div class="balance-item">
+                  <span class="balance-label">AVAILABLE BTC</span>
+                  <span class="balance-amount font-mono text-interactive" id="lp-available-btc">5.00000000 BTC</span>
+                </div>
+              </div>
+
+              <div class="token-inspect-box">
+                <span class="token-label">JSON WEB TOKEN (HMAC-SHA256)</span>
+                <div class="token-value font-mono" id="lp-token-snippet">eyJhbGciOiJIUzI1Ni...</div>
+              </div>
+
+              <div class="launchpad-cta-block">
+                <button id="btn-upgrade-terminal" class="btn btn-primary-cta btn-upgrade-pill">
+                  <span>⚡ Enter Trading Terminal</span>
+                </button>
+                <button id="btn-logout" class="btn btn-secondary-pill">Sign Out</button>
+              </div>
+
+              <p class="launchpad-footnote">
+                WebSocket market stream is held in standby mode for staging. Order placement will directly target the Ingress Disruptor.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 2: TRADING TERMINAL ==================== -->
+    <section id="terminal-view" class="view hidden">
+      
+      <!-- Terminal Sub-Navigation Bar -->
+      <div class="terminal-subnav">
+        <div class="subnav-container">
+          <div class="subnav-left">
+            <div class="market-pill">
+              <span class="market-symbol">BTC / USDT</span>
+              <span class="market-type">SPOT DMA</span>
+            </div>
+            <div class="subnav-stat">
+              <span class="stat-label">REFERENCE PRICE</span>
+              <span class="stat-value font-mono font-bold" id="ltp-display">50,000.00</span>
+            </div>
+            <div class="subnav-stat">
+              <span class="stat-label">ROUNDTRIP LATENCY</span>
+              <span class="stat-value font-mono text-interactive" id="latency-display">&lt; 1 ms</span>
+            </div>
+            <div class="subnav-stat">
+              <span class="stat-label">AVAILABLE USD</span>
+              <span class="stat-value font-mono font-bold text-positive" id="terminal-balance-usd">$100,000.00</span>
+            </div>
+            <div class="subnav-stat">
+              <span class="stat-label">AVAILABLE BTC</span>
+              <span class="stat-value font-mono font-bold text-interactive" id="terminal-balance-btc">5.00000000 BTC</span>
+            </div>
+            <div class="ws-indicator-tag" id="ws-status">
+              <span class="status-dot dot-standby" id="ws-dot"></span>
+              <span id="ws-status-text" class="status-text font-mono">WS STREAM: STANDBY</span>
+            </div>
+          </div>
+
+          <div class="subnav-right">
+            <div class="trader-chip">
+              <span class="chip-avatar">▲</span>
+              <span class="chip-email" id="terminal-user-email">trader@apex.trade</span>
+              <span class="chip-id font-mono" id="terminal-user-id">#--</span>
+            </div>
+            <button id="btn-back-launchpad" class="btn btn-secondary-pill btn-sm">Launchpad</button>
+            <button id="btn-terminal-logout" class="btn btn-ghost-link btn-sm">Sign Out</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Terminal Layout -->
+      <main class="terminal-layout">
+        <div class="terminal-container">
+
+          <!-- Column 1: Order Placement Form (DMA Ingress) -->
+          <section class="coinbase-card panel-order-entry">
+            <div class="card-header">
+              <h2 class="card-heading">Direct Market Access</h2>
+              <span class="card-subheading">Post order to Ingress Disruptor</span>
+            </div>
+
+            <div class="card-body">
+              <!-- Side Toggle: 56px Rounded Pill Toggle -->
+              <div class="side-pill-group" role="group">
+                <button type="button" class="side-btn active-buy" id="btn-side-buy" data-side="BUY">BUY</button>
+                <button type="button" class="side-btn" id="btn-side-sell" data-side="SELL">SELL</button>
+              </div>
+
+              <!-- Type Toggle: 100000px Pill Tags -->
+              <div class="type-pill-group" role="group">
+                <button type="button" class="type-btn active" id="btn-type-limit" data-type="LIMIT">LIMIT</button>
+                <button type="button" class="type-btn" id="btn-type-market" data-type="MARKET">MARKET</button>
+              </div>
+
+              <!-- Order Form -->
+              <form id="order-form" class="order-entry-form" novalidate>
+                <!-- Price Field -->
+                <div class="form-field" id="group-price">
+                  <label for="input-price">Limit Price (USDT)</label>
+                  <div class="input-stepper-box">
+                    <button type="button" class="stepper-btn" id="btn-price-minus">-10</button>
+                    <input type="number" id="input-price" class="input-base input-stepper font-mono" value="50000" min="1" step="any" required>
+                    <button type="button" class="stepper-btn" id="btn-price-plus">+10</button>
+                  </div>
+                  <div class="quick-preset-row">
+                    <button type="button" class="preset-tag" data-price-offset="-50">-50</button>
+                    <button type="button" class="preset-tag" data-price-offset="-10">-10</button>
+                    <button type="button" class="preset-tag" data-price-offset="0">REF</button>
+                    <button type="button" class="preset-tag" data-price-offset="10">+10</button>
+                    <button type="button" class="preset-tag" data-price-offset="50">+50</button>
+                  </div>
+                </div>
+
+                <!-- Quantity Field -->
+                <div class="form-field" id="group-qty">
+                  <label for="input-qty">Quantity</label>
+                  <div class="input-stepper-box">
+                    <button type="button" class="stepper-btn" id="btn-qty-minus">-10</button>
+                    <input type="number" id="input-qty" class="input-base input-stepper font-mono" value="10" min="1" step="any" required>
+                    <button type="button" class="stepper-btn" id="btn-qty-plus">+10</button>
+                  </div>
+                  <div class="quick-preset-row">
+                    <button type="button" class="preset-tag" data-qty="10">10</button>
+                    <button type="button" class="preset-tag" data-qty="50">50</button>
+                    <button type="button" class="preset-tag" data-qty="100">100</button>
+                    <button type="button" class="preset-tag" data-qty="500">500</button>
+                  </div>
+                </div>
+
+                <!-- Est. Notional -->
+                <div class="notional-summary">
+                  <span class="notional-label">Estimated Notional:</span>
+                  <span class="notional-value font-mono font-bold" id="summary-notional">500,000 USDT</span>
+                </div>
+
+                <!-- Real-time Asset Margin / Inventory Check -->
+                <div class="margin-check-row">
+                  <span class="margin-check-label" id="form-margin-label">Required USD:</span>
+                  <span class="margin-check-value font-mono" id="form-available-margin">Available: $100,000.00</span>
+                </div>
+
+                <!-- Signature 56px Pill Submit Button -->
+                <button type="submit" id="btn-submit-order" class="btn btn-order-submit btn-buy-cta">
+                  Submit BUY Limit Order
+                </button>
+              </form>
+
+              <!-- Ingress Cross Test Helper -->
+              <div class="test-helper-card">
+                <span class="helper-label">INGRESS VERIFICATION</span>
+                <button type="button" id="btn-demo-cross" class="btn btn-secondary-pill btn-block btn-sm">
+                  ⚡ Fire Cross Test (Buy @ 50000 + Sell @ 50000)
+                </button>
+              </div>
+
+              <!-- Order Status Banner -->
+              <div id="order-status-banner" class="status-banner hidden">
+                <div class="status-banner-content">
+                  <span class="banner-title" id="banner-title">ORDER SUBMITTED</span>
+                  <span class="banner-desc font-mono" id="banner-desc">--</span>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+          <!-- Column 2: My Active Orders -->
+          <section class="coinbase-card panel-orders">
+            <div class="card-header flex-between">
+              <div>
+                <h2 class="card-heading">My Active Orders</h2>
+                <span class="card-subheading">Orders staged in local session</span>
+              </div>
+              <div class="header-action-group">
+                <span class="count-pill font-mono" id="my-orders-count">0</span>
+                <button type="button" id="btn-clear-orders" class="btn btn-ghost-link btn-xs">Clear</button>
+              </div>
+            </div>
+
+            <div class="table-wrapper">
+              <table class="coinbase-table" id="table-my-orders">
+                <thead>
+                  <tr>
+                    <th>Order ID</th>
+                    <th>Time</th>
+                    <th>Side</th>
+                    <th>Type</th>
+                    <th>Price</th>
+                    <th>Qty</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="my-orders-tbody">
+                  <tr class="empty-row" id="my-orders-empty">
+                    <td colspan="8">No active orders placed yet in this session.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- Column 3: Gateway Ingress Audit Trail -->
+          <section class="coinbase-card panel-audit">
+            <div class="card-header flex-between">
+              <div>
+                <h2 class="card-heading">Gateway Audit Trail</h2>
+                <span class="card-subheading">Real-time HTTP ingress latency & response log</span>
+              </div>
+              <button type="button" id="btn-clear-audit" class="btn btn-ghost-link btn-xs">Clear Log</button>
+            </div>
+
+            <div class="table-wrapper" id="audit-container">
+              <table class="coinbase-table" id="table-audit">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Event</th>
+                    <th>HTTP</th>
+                    <th>Latency</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody id="audit-tbody">
+                  <tr class="empty-row" id="audit-empty">
+                    <td colspan="5">Gateway ingress audit log ready. Awaiting requests...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+        </div>
+      </main>
+    </section>
+
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

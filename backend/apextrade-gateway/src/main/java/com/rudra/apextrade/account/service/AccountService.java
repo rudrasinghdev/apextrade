@@ -46,10 +46,6 @@ public class AccountService {
         return getAccount(userId).reserveSellMargin(orderId, price, quantity, timestampNs);
     }
 
-    public void cancelOrder(long userId, long orderId) {
-        getAccount(userId).cancelOrder(orderId);
-    }
-
     public void settleBuyTrade(long userId, long orderId, long usdCost, long btcReceived) {
         Account account = ledger.get(userId);
         if (account != null) {
@@ -64,9 +60,8 @@ public class AccountService {
         }
     }
 
-    public boolean hasActiveOrder(long userId, long orderId) {
-        Account account = ledger.get(userId);
-        return account != null && account.hasActiveOrder(orderId);
+    public void cancelOrder(long userId, long orderId) {
+        getAccount(userId).cancelOrder(orderId);
     }
 
     public ActiveOrder getActiveOrder(long userId, long orderId) {

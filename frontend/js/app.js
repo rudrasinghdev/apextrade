@@ -8,14 +8,28 @@
 
   // --- Configuration ---
   const DEFAULT_PORT = 8080;
-  const PROD_HOST = 'apextrade-gateway.onrender.com';
   const savedHost = localStorage.getItem('apextrade_target_host');
-  const isLocal = window.location.hostname === 'localhost' ||
-                  window.location.hostname === '127.0.0.1' ||
-                  window.location.hostname === '';
-  const API_HOST = savedHost || (isLocal ? `localhost:${DEFAULT_PORT}` : PROD_HOST);
-  const REST_BASE_URL = API_HOST.includes('localhost') ? `http://${API_HOST}` : `https://${API_HOST}`;
-  const WS_PROTOCOL = REST_BASE_URL.startsWith('https') ? 'wss:' : 'ws:';
+
+  // Intelligent host auto-detection:
+  // 1. If explicitly configured via prompt / localStorage, use it.
+  // 2. If opened from local file system (file:///), default to localhost:8080.
+  // 3. If hosted on a server (e.g. Oracle Cloud, VPS, Render), dynamically bind to the current origin host.
+  let detectedHost;
+  if (savedHost) {
+    detectedHost = savedHost;
+  } else if (!window.location.hostname || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    detectedHost = `localhost:${DEFAULT_PORT}`;
+  } else if (window.location.host) {
+    detectedHost = window.location.port ? window.location.host : `${window.location.hostname}:${DEFAULT_PORT}`;
+  } else {
+    detectedHost = `localhost:${DEFAULT_PORT}`;
+  }
+
+  const API_HOST = detectedHost;
+  // Use HTTPS/WSS if loaded over HTTPS or if pointing to a secure cloud domain (e.g. onrender.com)
+  const isSecure = window.location.protocol === 'https:' || API_HOST.includes('onrender.com');
+  const REST_BASE_URL = `${isSecure ? 'https:' : 'http:'}//${API_HOST}`;
+  const WS_PROTOCOL = isSecure ? 'wss:' : 'ws:';
   const WS_URL = `${WS_PROTOCOL}//${API_HOST}/ws/trades`;
 
   // --- Persistent Storage Keys ---
@@ -197,21 +211,27 @@
     }
   }
 
-  // Environment Switcher (Cloud Render vs Localhost)
+  // Target Host Switcher
   function updateToggleEnvButton() {
     if (elements.btnToggleEnv) {
-      const isCloud = REST_BASE_URL.includes('onrender.com');
-      elements.btnToggleEnv.textContent = isCloud ? '⚡ Target: Cloud (Render)' : '💻 Target: Localhost';
-      elements.btnToggleEnv.style.color = isCloud ? 'var(--color-buy)' : 'var(--color-accent)';
+      elements.btnToggleEnv.textContent = `🎯 Target: ${API_HOST}`;
+      elements.btnToggleEnv.title = 'Click to switch or configure target backend host:port';
     }
   }
 
   if (elements.btnToggleEnv) {
     updateToggleEnvButton();
     elements.btnToggleEnv.addEventListener('click', () => {
-      const currentlyCloud = REST_BASE_URL.includes('onrender.com');
-      const newHost = currentlyCloud ? `localhost:${DEFAULT_PORT}` : PROD_HOST;
-      localStorage.setItem('apextrade_target_host', newHost);
+      const customHost = prompt(
+        `Enter backend host:port (current: ${API_HOST})\nLeave blank to reset to auto-detect:`,
+        API_HOST
+      );
+      if (customHost === null) return;
+      if (customHost.trim() === '') {
+        localStorage.removeItem('apextrade_target_host');
+      } else {
+        localStorage.setItem('apextrade_target_host', customHost.trim());
+      }
       window.location.reload();
     });
   }

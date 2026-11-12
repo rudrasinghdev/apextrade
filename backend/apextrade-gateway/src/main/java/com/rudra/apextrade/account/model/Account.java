@@ -54,23 +54,6 @@ public class Account {
         return true;
     }
 
-    public void cancelOrder(long orderId) {
-        ActiveOrder order = activeOrders.remove(orderId);
-        if (order != null) {
-            long remainingQty = order.getRemainingQuantity();
-            if (order.getSide() == Side.BUY) {
-                releaseFunds(availableUsd, reservedUsd, remainingQty * order.getPrice());
-            } else {
-                releaseFunds(availableBtc, reservedBtc, remainingQty);
-            }
-        }
-    }
-
-    private void releaseFunds(AtomicLong available, AtomicLong reserved, long amount) {
-        reserved.addAndGet(-amount);
-        available.addAndGet(amount);
-    }
-
     public void settleBuyTrade(long orderId, long usdCost, long btcReceived) {
         reduceOrRemoveOrder(orderId, btcReceived);
         reservedUsd.addAndGet(-usdCost);
@@ -90,8 +73,21 @@ public class Account {
         }
     }
 
-    public boolean hasActiveOrder(long orderId) {
-        return activeOrders.containsKey(orderId);
+    public void cancelOrder(long orderId) {
+        ActiveOrder order = activeOrders.remove(orderId);
+        if (order != null) {
+            long remainingQty = order.getRemainingQuantity();
+            if (order.getSide() == Side.BUY) {
+                releaseFunds(availableUsd, reservedUsd, remainingQty * order.getPrice());
+            } else {
+                releaseFunds(availableBtc, reservedBtc, remainingQty);
+            }
+        }
+    }
+
+    private void releaseFunds(AtomicLong available, AtomicLong reserved, long amount) {
+        reserved.addAndGet(-amount);
+        available.addAndGet(amount);
     }
 
     public ActiveOrder getActiveOrder(long orderId) {

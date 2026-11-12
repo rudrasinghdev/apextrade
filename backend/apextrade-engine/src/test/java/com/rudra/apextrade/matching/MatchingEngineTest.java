@@ -99,8 +99,8 @@ class MatchingEngineTest {
 
         MatchingEngine listenerEngine = new MatchingEngine(orderBook, 0L, listener);
 
-        // Cancel order that never existed
-        boolean result = listenerEngine.cancelOrder(999L, 42L);
+        // Cancel order that never existed: Trader #42, Order #999
+        boolean result = listenerEngine.cancelOrder(42L, 999L);
         assertFalse(result, "Cancelling non-existent order must return false");
         assertTrue(rejected[0], "onCancelRejected callback must be fired");
         assertEquals(999L, rejectedOrder[0]);

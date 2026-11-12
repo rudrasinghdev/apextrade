@@ -4,6 +4,7 @@ import com.rudra.apextrade.account.dto.AccountBalanceResponse;
 import com.rudra.apextrade.account.exception.AccountAlreadyExistsException;
 import com.rudra.apextrade.account.exception.AccountNotFoundException;
 import com.rudra.apextrade.account.model.Account;
+import com.rudra.apextrade.account.model.ActiveOrder;
 import com.rudra.apextrade.account.service.AccountService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -64,7 +65,7 @@ class AccountServiceTest {
         AccountBalanceResponse balance = accountService.getBalance(101L);
         assertEquals(8_000_000L, balance.availableUsd());
         assertEquals(2_000_000L, balance.reservedUsd());
-        assertTrue(accountService.hasActiveOrder(101L, 1L));
+        assertNotNull(accountService.getActiveOrder(101L, 1L));
     }
 
     @Test
@@ -77,7 +78,7 @@ class AccountServiceTest {
         AccountBalanceResponse balance = accountService.getBalance(101L);
         assertEquals(10_000_000L, balance.availableUsd());
         assertEquals(0L, balance.reservedUsd());
-        assertFalse(accountService.hasActiveOrder(101L, 1L));
+        assertNull(accountService.getActiveOrder(101L, 1L));
     }
 
     @Test
@@ -134,7 +135,7 @@ class AccountServiceTest {
         accountService.settleBuyTrade(101L, 1L, 150_000L, 3L);
 
         // Order should STILL be active with 7 BTC remaining
-        assertTrue(accountService.hasActiveOrder(101L, 1L));
+        assertNotNull(accountService.getActiveOrder(101L, 1L));
         assertEquals(1, accountService.getActiveOrders(101L).size());
         assertEquals(7L, accountService.getActiveOrders(101L).iterator().next().getRemainingQuantity());
         assertEquals(350_000L, account.getReservedUsd());
@@ -144,7 +145,7 @@ class AccountServiceTest {
         accountService.settleBuyTrade(101L, 1L, 350_000L, 7L);
 
         // Order should now be completely removed from active orders
-        assertFalse(accountService.hasActiveOrder(101L, 1L));
+        assertNull(accountService.getActiveOrder(101L, 1L));
         assertEquals(0, accountService.getActiveOrders(101L).size());
         assertEquals(0L, account.getReservedUsd());
         assertEquals(AccountService.DEFAULT_INITIAL_BTC + 10L, account.getAvailableBtc());
@@ -164,7 +165,7 @@ class AccountServiceTest {
         accountService.cancelOrder(101L, 1L);
 
         Account account = accountService.getAccount(101L);
-        assertFalse(accountService.hasActiveOrder(101L, 1L));
+        assertNull(accountService.getActiveOrder(101L, 1L));
         assertEquals(0L, account.getReservedUsd());
         assertEquals(AccountService.DEFAULT_INITIAL_USD - 200_000L, account.getAvailableUsd());
         assertEquals(AccountService.DEFAULT_INITIAL_BTC + 4L, account.getAvailableBtc());

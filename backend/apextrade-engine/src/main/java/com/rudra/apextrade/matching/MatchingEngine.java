@@ -124,10 +124,10 @@ public class MatchingEngine {
     }
 
     public boolean cancelOrder(long orderId) {
-        return cancelOrder(orderId, 0L);
+        return cancelOrder(0L, orderId);
     }
 
-    public boolean cancelOrder(long orderId, long userId) {
+    public boolean cancelOrder(long userId, long orderId) {
         Order order = orderBook.cancelOrder(orderId);
         if (order != null) {
             System.out.printf("[Matching Engine] Order #%d cancelled from %s book [unfilled: %d].%n",

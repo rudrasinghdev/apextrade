@@ -34,7 +34,7 @@ public class OrderCommandHandler implements EventHandler<OrderCommandEvent> {
         } else if (event.getCommandType() == CommandType.CANCEL_ORDER) {
             System.out.printf("[Engine Sequencer] S2 RingBuffer dispatched Cancel for Order #%d (Trader #%d) -> Handing to MatchingEngine.%n",
                     event.getOrderId(), event.getUserId());
-            matchingEngine.cancelOrder(event.getOrderId(), event.getUserId());
+            matchingEngine.cancelOrder(event.getUserId(), event.getOrderId());
         }
     }
 }

@@ -6,7 +6,8 @@ import com.rudra.apextrade.common.domain.Side;
 import java.nio.ByteBuffer;
 
 /**
- * High-performance, zero-allocation variable-frame binary wire codec for order commands (Gateway -> Engine).
+ * High-performance, zero-allocation variable-frame binary wire codec for order
+ * commands (Gateway -> Engine).
  * Implements clean 4-byte protocol header and payload-specific body layouts.
  *
  * Framing layout:
@@ -17,11 +18,12 @@ import java.nio.ByteBuffer;
  *
  * Payload:
  * 1. NEW_ORDER (36 bytes payload -> 40 bytes total frame):
- *    - Side (1B), OrderType (1B), Padding (2B) -> aligns subsequent longs to offset 8
- *    - OrderId (8B), UserId (8B), Price (8B), Quantity (8B)
+ * - Side (1B), OrderType (1B), Padding (2B) -> aligns subsequent longs to
+ * offset 8
+ * - OrderId (8B), UserId (8B), Price (8B), Quantity (8B)
  *
  * 2. CANCEL_ORDER (16 bytes payload -> 20 bytes total frame):
- *    - OrderId (8B), UserId (8B)
+ * - OrderId (8B), UserId (8B)
  */
 public final class OrderCommandCodec {
 
@@ -33,8 +35,9 @@ public final class OrderCommandCodec {
     public static final byte MSG_TYPE_CANCEL_ORDER = 2;
 
     public interface Handler {
-        void onPlaceOrder(long orderId, long userId, Side side, long price, long quantity, OrderType orderType);
-        void onCancelOrder(long orderId, long userId);
+        void onPlaceOrder(long userId, long orderId, Side side, long price, long quantity, OrderType orderType);
+
+        void onCancelOrder(long userId, long orderId);
     }
 
     private OrderCommandCodec() {
@@ -42,35 +45,33 @@ public final class OrderCommandCodec {
 
     public static void encodePlaceOrder(
             ByteBuffer buffer,
-            long orderId,
             long userId,
+            long orderId,
             Side side,
             long price,
             long quantity,
-            OrderType orderType
-    ) {
+            OrderType orderType) {
         buffer.putShort(MAGIC);
         buffer.put(MSG_TYPE_NEW_ORDER);
         buffer.put((byte) 0); // header padding
         buffer.put((byte) (side == Side.BUY ? 0 : 1));
         buffer.put((byte) (orderType == OrderType.LIMIT ? 0 : 1));
         buffer.putShort((short) 0); // 2 bytes padding to align longs to offset 8
-        buffer.putLong(orderId);
         buffer.putLong(userId);
+        buffer.putLong(orderId);
         buffer.putLong(price);
         buffer.putLong(quantity);
     }
 
     public static void encodeCancelOrder(
             ByteBuffer buffer,
-            long orderId,
-            long userId
-    ) {
+            long userId,
+            long orderId) {
         buffer.putShort(MAGIC);
         buffer.put(MSG_TYPE_CANCEL_ORDER);
         buffer.put((byte) 0); // header padding
-        buffer.putLong(orderId);
         buffer.putLong(userId);
+        buffer.putLong(orderId);
     }
 
     public static int decodeFrames(ByteBuffer buffer, Handler handler) {

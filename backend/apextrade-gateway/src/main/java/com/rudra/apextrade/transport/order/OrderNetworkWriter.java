@@ -36,21 +36,21 @@ public class OrderNetworkWriter implements EventHandler<OrderCommandEvent> {
         if (event.getCommandType() == CommandType.PLACE_ORDER) {
             OrderCommandCodec.encodePlaceOrder(
                     directBuffer,
-                    event.getOrderId(),
                     event.getUserId(),
+                    event.getOrderId(),
                     event.getSide(),
                     event.getPrice(),
                     event.getQuantity(),
                     event.getOrderType()
             );
-            log.info("[Gateway Egress] Encoded Order #{} into 40-byte wire frame. Flushing to Engine TCP socket...", event.getOrderId());
+            log.info("[Gateway Egress] Encoded Order #{} into 40-byte wire frame in egress buffer.", event.getOrderId());
         } else if (event.getCommandType() == CommandType.CANCEL_ORDER) {
             OrderCommandCodec.encodeCancelOrder(
                     directBuffer,
-                    event.getOrderId(),
-                    event.getUserId()
+                    event.getUserId(),
+                    event.getOrderId()
             );
-            log.info("[Gateway Egress] Encoded Cancel Order #{} into 20-byte wire frame. Flushing to Engine TCP socket...", event.getOrderId());
+            log.info("[Gateway Egress] Encoded Cancel Order #{} into 20-byte wire frame in egress buffer.", event.getOrderId());
         }
 
         if (endOfBatch) {
@@ -60,10 +60,20 @@ public class OrderNetworkWriter implements EventHandler<OrderCommandEvent> {
 
     private void flush() throws IOException {
         directBuffer.flip();
+        int bytesToWrite = directBuffer.remaining();
+        if (bytesToWrite == 0) {
+            directBuffer.clear();
+            return;
+        }
+
         if (socketChannel != null && socketChannel.isConnected()) {
+            int totalWritten = 0;
             while (directBuffer.hasRemaining()) {
-                socketChannel.write(directBuffer);
+                totalWritten += socketChannel.write(directBuffer);
             }
+            log.info("[Gateway Egress] Flushed {} bytes to Engine TCP socket.", totalWritten);
+        } else {
+            log.warn("[Gateway Egress] Socket channel not connected! Dropped {} bytes of pending order frames.", bytesToWrite);
         }
         directBuffer.clear();
     }
