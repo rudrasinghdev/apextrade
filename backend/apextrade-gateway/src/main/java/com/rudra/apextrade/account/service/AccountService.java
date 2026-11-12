@@ -30,6 +30,14 @@ public class AccountService {
                 userId, DEFAULT_INITIAL_USD, DEFAULT_INITIAL_BTC);
     }
 
+    public Account getOrCreateAccount(long userId) {
+        return ledger.computeIfAbsent(userId, id -> {
+            log.info("[Ledger Audit] Initialized paper trading account for Trader #{}: {} USD, {} BTC.",
+                    id, DEFAULT_INITIAL_USD, DEFAULT_INITIAL_BTC);
+            return new Account(DEFAULT_INITIAL_USD, DEFAULT_INITIAL_BTC);
+        });
+    }
+
     public Account getAccount(long userId) {
         Account account = ledger.get(userId);
         if (account == null) {
@@ -39,11 +47,11 @@ public class AccountService {
     }
 
     public boolean reserveBuyMargin(long userId, long orderId, long price, long quantity, long timestampNs) {
-        return getAccount(userId).reserveBuyMargin(orderId, price, quantity, timestampNs);
+        return getOrCreateAccount(userId).reserveBuyMargin(orderId, price, quantity, timestampNs);
     }
 
     public boolean reserveSellMargin(long userId, long orderId, long price, long quantity, long timestampNs) {
-        return getAccount(userId).reserveSellMargin(orderId, price, quantity, timestampNs);
+        return getOrCreateAccount(userId).reserveSellMargin(orderId, price, quantity, timestampNs);
     }
 
     public void settleBuyTrade(long userId, long orderId, long usdCost, long btcReceived) {
@@ -61,15 +69,20 @@ public class AccountService {
     }
 
     public void cancelOrder(long userId, long orderId) {
-        getAccount(userId).cancelOrder(orderId);
+        Account account = ledger.get(userId);
+        if (account != null) {
+            account.cancelOrder(orderId);
+        }
     }
 
     public ActiveOrder getActiveOrder(long userId, long orderId) {
-        return getAccount(userId).getActiveOrder(orderId);
+        Account account = ledger.get(userId);
+        return account != null ? account.getActiveOrder(orderId) : null;
     }
 
     public Collection<ActiveOrder> getActiveOrders(long userId) {
-        return getAccount(userId).getActiveOrders();
+        Account account = ledger.get(userId);
+        return account != null ? account.getActiveOrders() : java.util.Collections.emptyList();
     }
 
     public AccountBalanceResponse getBalance(long userId) {

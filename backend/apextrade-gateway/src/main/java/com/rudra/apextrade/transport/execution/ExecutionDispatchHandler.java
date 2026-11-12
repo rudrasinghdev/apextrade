@@ -29,12 +29,16 @@ public class ExecutionDispatchHandler implements EventHandler<ExecutionEvent> {
 
     @Override
     public void onEvent(ExecutionEvent event, long sequence, boolean endOfBatch) {
-        if (event.getExecType() == ExecutionType.TRADE) {
-            handleTrade(event);
-        } else if (event.getExecType() == ExecutionType.CANCELLED) {
-            handleCancel(event);
-        } else if (event.getExecType() == ExecutionType.CANCEL_REJECTED) {
-            handleCancelRejected(event);
+        try {
+            if (event.getExecType() == ExecutionType.TRADE) {
+                handleTrade(event);
+            } else if (event.getExecType() == ExecutionType.CANCELLED) {
+                handleCancel(event);
+            } else if (event.getExecType() == ExecutionType.CANCEL_REJECTED) {
+                handleCancelRejected(event);
+            }
+        } catch (Throwable t) {
+            log.error("[Gateway Settlement] Unhandled exception processing execution event #{}: {}", sequence, t.getMessage(), t);
         }
     }
 

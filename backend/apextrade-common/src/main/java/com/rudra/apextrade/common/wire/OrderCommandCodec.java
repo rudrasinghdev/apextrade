@@ -108,17 +108,17 @@ public final class OrderCommandCodec {
                 byte sideByte = buffer.get();
                 byte orderTypeByte = buffer.get();
                 buffer.getShort(); // 2 bytes padding
-                long orderId = buffer.getLong();
                 long userId = buffer.getLong();
+                long orderId = buffer.getLong();
                 long price = buffer.getLong();
                 long quantity = buffer.getLong();
                 Side side = (sideByte == 0) ? Side.BUY : Side.SELL;
                 OrderType orderType = (orderTypeByte == 0) ? OrderType.LIMIT : OrderType.MARKET;
-                handler.onPlaceOrder(orderId, userId, side, price, quantity, orderType);
+                handler.onPlaceOrder(userId, orderId, side, price, quantity, orderType);
             } else if (msgType == MSG_TYPE_CANCEL_ORDER) {
-                long orderId = buffer.getLong();
                 long userId = buffer.getLong();
-                handler.onCancelOrder(orderId, userId);
+                long orderId = buffer.getLong();
+                handler.onCancelOrder(userId, orderId);
             }
             count++;
         }

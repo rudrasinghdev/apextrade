@@ -50,6 +50,23 @@ public class ExecutionDisruptor {
                 new YieldingWaitStrategy()
         );
 
+        disruptor.setDefaultExceptionHandler(new com.lmax.disruptor.ExceptionHandler<ExecutionEvent>() {
+            @Override
+            public void handleEventException(Throwable ex, long sequence, ExecutionEvent event) {
+                System.err.printf("[Execution Disruptor] Exception processing sequence %d: %s%n", sequence, ex.getMessage());
+            }
+
+            @Override
+            public void handleOnStartException(Throwable ex) {
+                System.err.printf("[Execution Disruptor] Exception during start: %s%n", ex.getMessage());
+            }
+
+            @Override
+            public void handleOnShutdownException(Throwable ex) {
+                System.err.printf("[Execution Disruptor] Exception during shutdown: %s%n", ex.getMessage());
+            }
+        });
+
         disruptor.handleEventsWith(handler);
         disruptor.start();
 

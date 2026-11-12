@@ -1,5 +1,6 @@
 package com.rudra.apextrade.auth.service;
 
+import com.rudra.apextrade.account.service.AccountService;
 import com.rudra.apextrade.auth.dto.LoginRequest;
 import com.rudra.apextrade.auth.dto.LoginResponse;
 import com.rudra.apextrade.auth.dto.RegisterRequest;
@@ -18,15 +19,18 @@ import org.springframework.stereotype.Service;
 public class AuthService {
 
     private final UserService userService;
+    private final AccountService accountService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
     public AuthService(
             UserService userService,
+            AccountService accountService,
             PasswordEncoder passwordEncoder,
             JwtService jwtService
     ) {
         this.userService = userService;
+        this.accountService = accountService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
     }
@@ -53,6 +57,8 @@ public class AuthService {
         if (!passwordEncoder.matches(req.password(), user.getPasswordHash())) {
             throw new BadCredentialsException("Invalid username or password");
         }
+
+        accountService.getOrCreateAccount(user.getUserId());
 
         String token = jwtService.generateToken(user.getUserId(), user.getEmail());
         log.info("[Auth Audit] Trader #{} ({}) authenticated successfully. JWT token issued.", user.getUserId(), user.getEmail());
