@@ -8,26 +8,30 @@
 
   // --- Configuration ---
   const DEFAULT_PORT = 8080;
-  const savedHost = localStorage.getItem('apextrade_target_host');
+  const ORACLE_CLOUD_HOST = '152.67.4.206:8080';
+  let savedHost = localStorage.getItem('apextrade_target_host');
+
+  // Purge any stale legacy Render host cache
+  if (savedHost && savedHost.includes('onrender.com')) {
+    localStorage.removeItem('apextrade_target_host');
+    savedHost = null;
+  }
 
   // Intelligent host auto-detection:
   // 1. If explicitly configured via prompt / localStorage, use it.
-  // 2. If opened from local file system (file:///), default to localhost:8080.
-  // 3. If hosted on a server (e.g. Oracle Cloud, VPS, Render), dynamically bind to the current origin host.
+  // 2. If loaded in browser from a server (e.g. Oracle Cloud IP), dynamically bind to the current origin host.
+  // 3. If opened locally from disk (file:///), connect directly to the live Oracle Cloud server!
   let detectedHost;
   if (savedHost) {
     detectedHost = savedHost;
-  } else if (!window.location.hostname || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    detectedHost = `localhost:${DEFAULT_PORT}`;
-  } else if (window.location.host) {
+  } else if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
     detectedHost = window.location.port ? window.location.host : `${window.location.hostname}:${DEFAULT_PORT}`;
   } else {
-    detectedHost = `localhost:${DEFAULT_PORT}`;
+    detectedHost = ORACLE_CLOUD_HOST;
   }
 
   const API_HOST = detectedHost;
-  // Use HTTPS/WSS if loaded over HTTPS or if pointing to a secure cloud domain (e.g. onrender.com)
-  const isSecure = window.location.protocol === 'https:' || API_HOST.includes('onrender.com');
+  const isSecure = window.location.protocol === 'https:';
   const REST_BASE_URL = `${isSecure ? 'https:' : 'http:'}//${API_HOST}`;
   const WS_PROTOCOL = isSecure ? 'wss:' : 'ws:';
   const WS_URL = `${WS_PROTOCOL}//${API_HOST}/ws/trades`;
