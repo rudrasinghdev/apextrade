@@ -5,11 +5,13 @@ import com.rudra.apextrade.user.dto.UserProfileResponse;
 import com.rudra.apextrade.user.exception.UserNotFoundException;
 import com.rudra.apextrade.user.model.User;
 import com.rudra.apextrade.user.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
+@Slf4j
 @Service
 public class UserService {
 
@@ -29,6 +31,8 @@ public class UserService {
                 .createdAt(System.currentTimeMillis())
                 .build();
         User savedUser = userRepository.save(user);
+        log.info("[User Audit] User #{} successfully registered with email: {}", savedUser.getUserId(), savedUser.getEmail());
+
         accountService.createAccount(savedUser.getUserId());
         return savedUser;
     }

@@ -39,6 +39,8 @@ public class MatchingEngine {
 
         if (remainingQuantity > 0 && orderType == OrderType.LIMIT) {
             orderBook.addOrder(userId, orderId, side, price, remainingQuantity, orderType, timestamp);
+            System.out.printf("[Matching Engine] Order #%d is now RESTING in %s book [%d units @ %d USD].%n",
+                    orderId, side, remainingQuantity, price);
         }
     }
 
@@ -82,30 +84,32 @@ public class MatchingEngine {
             }
 
             if (executionListener != null) {
-                long buyerId;
+                long buyerUserId;
                 long buyerOrderId;
-                long sellerId;
+                long sellerUserId;
                 long sellerOrderId;
 
                 if (takerSide == Side.BUY) {
-                    buyerId = takerUserId;
+                    buyerUserId = takerUserId;
                     buyerOrderId = takerOrderId;
-                    sellerId = makerOrder.getUserId();
+                    sellerUserId = makerOrder.getUserId();
                     sellerOrderId = makerOrder.getOrderId();
                 } else {
-                    buyerId = makerOrder.getUserId();
+                    buyerUserId = makerOrder.getUserId();
                     buyerOrderId = makerOrder.getOrderId();
-                    sellerId = takerUserId;
+                    sellerUserId = takerUserId;
                     sellerOrderId = takerOrderId;
                 }
 
+                System.out.printf("[Matching Engine] MATCH EXECUTED! Trade #%d: Buyer #%d (Order #%d) x Seller #%d (Order #%d): %d units @ %d USD.%n",
+                        nextTradeId, buyerUserId, buyerOrderId, sellerUserId, sellerOrderId, matchQuantity, currentLevelPrice);
+
                 executionListener.onTrade(
                         nextTradeId++,
-                        buyerId,
+                        buyerUserId,
                         buyerOrderId,
-                        sellerId,
+                        sellerUserId,
                         sellerOrderId,
-                        takerSide,
                         currentLevelPrice,
                         matchQuantity,
                         timestamp
@@ -120,27 +124,19 @@ public class MatchingEngine {
     }
 
     public boolean cancelOrder(long orderId) {
+        return cancelOrder(orderId, 0L);
+    }
+
+    public boolean cancelOrder(long orderId, long userId) {
         Order order = orderBook.cancelOrder(orderId);
         if (order != null) {
+            System.out.printf("[Matching Engine] Order #%d cancelled from %s book [unfilled: %d].%n",
+                    orderId, order.getSide(), order.getRemainingQuantity());
+
             if (executionListener != null) {
-                long buyerId = 0L;
-                long buyerOrderId = 0L;
-                long sellerId = 0L;
-                long sellerOrderId = 0L;
-
-                if (order.getSide() == Side.BUY) {
-                    buyerId = order.getUserId();
-                    buyerOrderId = order.getOrderId();
-                } else {
-                    sellerId = order.getUserId();
-                    sellerOrderId = order.getOrderId();
-                }
-
-                executionListener.onCancel(
-                        buyerId,
-                        buyerOrderId,
-                        sellerId,
-                        sellerOrderId,
+                executionListener.onCancelled(
+                        order.getOrderId(),
+                        order.getUserId(),
                         order.getSide(),
                         order.getPrice(),
                         order.getRemainingQuantity(),
@@ -150,7 +146,12 @@ public class MatchingEngine {
             orderBook.releaseOrder(order);
             return true;
         }
+
+        System.out.printf("[Matching Engine] CANCEL REJECTED: Order #%d (Trader #%d) not found in book.%n",
+                orderId, userId);
+        if (executionListener != null) {
+            executionListener.onCancelRejected(orderId, userId, System.nanoTime());
+        }
         return false;
     }
 }
-

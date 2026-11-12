@@ -5,11 +5,13 @@ import com.rudra.apextrade.common.domain.CommandType;
 import com.rudra.apextrade.common.event.OrderCommandEvent;
 import com.rudra.apextrade.common.wire.OrderCommandCodec;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
+@Slf4j
 public class OrderNetworkWriter implements EventHandler<OrderCommandEvent> {
 
     private final ByteBuffer directBuffer = ByteBuffer.allocateDirect(1024 * 64);
@@ -23,16 +25,16 @@ public class OrderNetworkWriter implements EventHandler<OrderCommandEvent> {
 
     @Override
     public void onEvent(OrderCommandEvent event, long sequence, boolean endOfBatch) throws Exception {
-        if (event.getCommandType() == null) {
-            return;
-        }
+        int requiredSize = (event.getCommandType() == CommandType.PLACE_ORDER)
+                ? OrderCommandCodec.NEW_ORDER_FRAME_SIZE
+                : OrderCommandCodec.CANCEL_FRAME_SIZE;
 
-        if (directBuffer.remaining() < OrderCommandCodec.FRAME_SIZE) {
+        if (directBuffer.remaining() < requiredSize) {
             flush();
         }
 
         if (event.getCommandType() == CommandType.PLACE_ORDER) {
-            OrderCommandCodec.encodeNewOrder(
+            OrderCommandCodec.encodePlaceOrder(
                     directBuffer,
                     event.getOrderId(),
                     event.getUserId(),
@@ -41,12 +43,14 @@ public class OrderNetworkWriter implements EventHandler<OrderCommandEvent> {
                     event.getQuantity(),
                     event.getOrderType()
             );
+            log.info("[Gateway Egress] Encoded Order #{} into 40-byte wire frame. Flushing to Engine TCP socket...", event.getOrderId());
         } else if (event.getCommandType() == CommandType.CANCEL_ORDER) {
             OrderCommandCodec.encodeCancelOrder(
                     directBuffer,
                     event.getOrderId(),
                     event.getUserId()
             );
+            log.info("[Gateway Egress] Encoded Cancel Order #{} into 20-byte wire frame. Flushing to Engine TCP socket...", event.getOrderId());
         }
 
         if (endOfBatch) {
@@ -54,7 +58,7 @@ public class OrderNetworkWriter implements EventHandler<OrderCommandEvent> {
         }
     }
 
-    public void flush() throws IOException {
+    private void flush() throws IOException {
         directBuffer.flip();
         if (socketChannel != null && socketChannel.isConnected()) {
             while (directBuffer.hasRemaining()) {

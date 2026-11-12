@@ -1231,9 +1231,40 @@ body {
   color: var(--color-midnight);
 }
 
+.status-filled {
+  background-color: #eaf7f1;
+  color: var(--color-positive-green);
+  border: 1px solid rgba(39, 173, 117, 0.3);
+}
+
+.status-pending_cancel,
+.status-pending-cancel {
+  background-color: #fef7e0;
+  color: #b06000;
+  border: 1px solid rgba(255, 179, 0, 0.4);
+}
+
+.status-resting {
+  background-color: #e8f0fe;
+  color: var(--color-coinbase-blue);
+  border: 1px solid rgba(0, 82, 255, 0.3);
+}
+
 .status-cancelled {
   background-color: var(--color-frost);
   color: var(--color-ash);
+}
+
+.ltp-flash-up {
+  color: var(--color-positive-green) !important;
+  text-shadow: 0 0 8px rgba(39, 173, 117, 0.6);
+  transition: all 0.3s ease;
+}
+
+.ltp-flash-down {
+  color: var(--color-negative-red) !important;
+  text-shadow: 0 0 8px rgba(240, 97, 109, 0.6);
+  transition: all 0.3s ease;
 }
 
 .btn-cancel {

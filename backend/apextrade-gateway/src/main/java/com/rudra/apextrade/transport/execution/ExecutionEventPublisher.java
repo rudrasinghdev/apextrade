@@ -20,11 +20,10 @@ public class ExecutionEventPublisher implements ExecutionWireCodec.Handler {
     @Override
     public void onTrade(
             long tradeId,
-            long buyerId,
+            long buyerUserId,
             long buyerOrderId,
-            long sellerId,
+            long sellerUserId,
             long sellerOrderId,
-            Side takerSide,
             long price,
             long quantity,
             long timestamp
@@ -34,11 +33,10 @@ public class ExecutionEventPublisher implements ExecutionWireCodec.Handler {
             ExecutionEvent event = ringBuffer.get(sequence);
             event.setTrade(
                     tradeId,
-                    buyerId,
+                    buyerUserId,
                     buyerOrderId,
-                    sellerId,
+                    sellerUserId,
                     sellerOrderId,
-                    takerSide,
                     price,
                     quantity,
                     timestamp
@@ -49,27 +47,42 @@ public class ExecutionEventPublisher implements ExecutionWireCodec.Handler {
     }
 
     @Override
-    public void onCancel(
-            long buyerId,
-            long buyerOrderId,
-            long sellerId,
-            long sellerOrderId,
+    public void onCancelled(
+            long orderId,
+            long userId,
             Side side,
             long price,
-            long quantity,
+            long unfilledQuantity,
             long timestamp
     ) {
         long sequence = ringBuffer.next();
         try {
             ExecutionEvent event = ringBuffer.get(sequence);
-            event.setCancel(
-                    buyerId,
-                    buyerOrderId,
-                    sellerId,
-                    sellerOrderId,
+            event.setCancelled(
+                    orderId,
+                    userId,
                     side,
                     price,
-                    quantity,
+                    unfilledQuantity,
+                    timestamp
+            );
+        } finally {
+            ringBuffer.publish(sequence);
+        }
+    }
+
+    @Override
+    public void onCancelRejected(
+            long orderId,
+            long userId,
+            long timestamp
+    ) {
+        long sequence = ringBuffer.next();
+        try {
+            ExecutionEvent event = ringBuffer.get(sequence);
+            event.setCancelRejected(
+                    orderId,
+                    userId,
                     timestamp
             );
         } finally {

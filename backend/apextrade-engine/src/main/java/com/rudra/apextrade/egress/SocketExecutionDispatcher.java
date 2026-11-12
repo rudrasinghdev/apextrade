@@ -18,7 +18,16 @@ public class SocketExecutionDispatcher implements EventHandler<ExecutionEvent> {
 
     @Override
     public void onEvent(ExecutionEvent event, long sequence, boolean endOfBatch) throws Exception {
-        if (directBuffer.remaining() < ExecutionWireCodec.FRAME_SIZE) {
+        int requiredSize;
+        if (event.getExecType() == ExecutionType.TRADE) {
+            requiredSize = ExecutionWireCodec.TRADE_FRAME_SIZE;
+        } else if (event.getExecType() == ExecutionType.CANCELLED) {
+            requiredSize = ExecutionWireCodec.CANCEL_FRAME_SIZE;
+        } else {
+            requiredSize = ExecutionWireCodec.CANCEL_REJECT_FRAME_SIZE;
+        }
+
+        if (directBuffer.remaining() < requiredSize) {
             flush();
         }
 
@@ -26,11 +35,10 @@ public class SocketExecutionDispatcher implements EventHandler<ExecutionEvent> {
             ExecutionWireCodec.encodeTrade(
                     directBuffer,
                     event.getTradeId(),
-                    event.getBuyerId(),
+                    event.getBuyerUserId(),
                     event.getBuyerOrderId(),
-                    event.getSellerId(),
+                    event.getSellerUserId(),
                     event.getSellerOrderId(),
-                    event.getTakerSide(),
                     event.getPrice(),
                     event.getQuantity(),
                     event.getTimestamp()
@@ -38,13 +46,18 @@ public class SocketExecutionDispatcher implements EventHandler<ExecutionEvent> {
         } else if (event.getExecType() == ExecutionType.CANCELLED) {
             ExecutionWireCodec.encodeCancel(
                     directBuffer,
-                    event.getBuyerId(),
-                    event.getBuyerOrderId(),
-                    event.getSellerId(),
-                    event.getSellerOrderId(),
-                    event.getTakerSide(),
+                    event.getCancelledOrderId(),
+                    event.getCancelledUserId(),
+                    event.getCancelledSide(),
                     event.getPrice(),
                     event.getQuantity(),
+                    event.getTimestamp()
+            );
+        } else if (event.getExecType() == ExecutionType.CANCEL_REJECTED) {
+            ExecutionWireCodec.encodeCancelReject(
+                    directBuffer,
+                    event.getCancelledOrderId(),
+                    event.getCancelledUserId(),
                     event.getTimestamp()
             );
         }

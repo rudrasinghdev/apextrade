@@ -44,23 +44,5 @@ public class OrderCommandEvent extends OrderCommandEventFields {
         this.userId = userId;
         this.timestamp = timestamp;
     }
-
-    public void set(CommandType commandType, long userId, long orderId, Side side,
-                    long price, long quantity, OrderType orderType, long timestamp) {
-        this.commandType = commandType;
-        this.userId = userId;
-        this.orderId = orderId;
-        this.side = side;
-        this.price = price;
-        this.quantity = quantity;
-        this.orderType = orderType;
-        this.timestamp = timestamp;
-    }
-
-    public void setCancel(long orderId, long userId) {
-        this.commandType = CommandType.CANCEL_ORDER;
-        this.orderId = orderId;
-        this.userId = userId;
-    }
 }
 

@@ -20,6 +20,8 @@ public class OrderCommandHandler implements EventHandler<OrderCommandEvent> {
         }
 
         if (event.getCommandType() == CommandType.PLACE_ORDER) {
+            System.out.printf("[Engine Sequencer] S2 RingBuffer dispatched Order #%d for Trader #%d [%s %d @ %d USD] -> Handing to MatchingEngine.%n",
+                    event.getOrderId(), event.getUserId(), event.getSide(), event.getQuantity(), event.getPrice());
             matchingEngine.processOrder(
                     event.getUserId(),
                     event.getOrderId(),
@@ -30,7 +32,9 @@ public class OrderCommandHandler implements EventHandler<OrderCommandEvent> {
                     event.getTimestamp()
             );
         } else if (event.getCommandType() == CommandType.CANCEL_ORDER) {
-            matchingEngine.cancelOrder(event.getOrderId());
+            System.out.printf("[Engine Sequencer] S2 RingBuffer dispatched Cancel for Order #%d (Trader #%d) -> Handing to MatchingEngine.%n",
+                    event.getOrderId(), event.getUserId());
+            matchingEngine.cancelOrder(event.getOrderId(), event.getUserId());
         }
     }
 }

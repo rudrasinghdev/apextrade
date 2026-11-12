@@ -1,15 +1,17 @@
 package com.rudra.apextrade.account.service;
 
-import  com.rudra.apextrade.account.dto.AccountBalanceResponse;
+import com.rudra.apextrade.account.dto.AccountBalanceResponse;
 import com.rudra.apextrade.account.exception.AccountAlreadyExistsException;
 import com.rudra.apextrade.account.exception.AccountNotFoundException;
 import com.rudra.apextrade.account.model.Account;
 import com.rudra.apextrade.account.model.ActiveOrder;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @Service
 public class AccountService {
 
@@ -24,6 +26,8 @@ public class AccountService {
         if (existing != null) {
             throw new AccountAlreadyExistsException("Account already exists for trader #" + userId);
         }
+        log.info("[Ledger Audit] Paper trading account initialized for Trader #{}: {} USD, {} BTC.",
+                userId, DEFAULT_INITIAL_USD, DEFAULT_INITIAL_BTC);
     }
 
     public Account getAccount(long userId) {

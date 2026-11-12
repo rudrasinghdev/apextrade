@@ -11,56 +11,73 @@ abstract class ExecutionEventLhsPadding {
 @Getter
 abstract class ExecutionEventFields extends ExecutionEventLhsPadding {
     protected ExecutionType execType;
-    protected Side takerSide;
+
+    // Trade-specific fields
     protected long tradeId;
-    protected long buyerId;
+    protected long buyerUserId;
     protected long buyerOrderId;
-    protected long sellerId;
+    protected long sellerUserId;
     protected long sellerOrderId;
+
+    // Cancel-specific fields
+    protected long cancelledOrderId;
+    protected long cancelledUserId;
+    protected Side cancelledSide;
+
+    // Shared primitive fields
     protected long price;
-    protected long quantity;
+    protected long quantity; // matchQuantity on Trade, unfilledQuantity on Cancel
     protected long timestamp;
 }
 
 public class ExecutionEvent extends ExecutionEventFields {
     protected long p5, p6, p7, p8;
 
-    public void setTrade(long tradeId, long buyerId, long buyerOrderId,
-                         long sellerId, long sellerOrderId, Side takerSide,
+    public void setTrade(long tradeId, long buyerUserId, long buyerOrderId,
+                         long sellerUserId, long sellerOrderId,
                          long price, long quantity, long timestamp) {
         this.execType = ExecutionType.TRADE;
-        this.takerSide = takerSide;
         this.tradeId = tradeId;
-        this.buyerId = buyerId;
+        this.buyerUserId = buyerUserId;
         this.buyerOrderId = buyerOrderId;
-        this.sellerId = sellerId;
+        this.sellerUserId = sellerUserId;
         this.sellerOrderId = sellerOrderId;
+        this.cancelledOrderId = 0L;
+        this.cancelledUserId = 0L;
+        this.cancelledSide = null;
         this.price = price;
         this.quantity = quantity;
         this.timestamp = timestamp;
     }
 
-    public void setCancel(long buyerId, long buyerOrderId,
-                          long sellerId, long sellerOrderId, Side side,
-                          long price, long quantity, long timestamp) {
+    public void setCancelled(long orderId, long userId, Side side,
+                             long price, long unfilledQuantity, long timestamp) {
         this.execType = ExecutionType.CANCELLED;
-        this.takerSide = side;
         this.tradeId = 0L;
-        this.buyerId = buyerId;
-        this.buyerOrderId = buyerOrderId;
-        this.sellerId = sellerId;
-        this.sellerOrderId = sellerOrderId;
+        this.buyerUserId = 0L;
+        this.buyerOrderId = 0L;
+        this.sellerUserId = 0L;
+        this.sellerOrderId = 0L;
+        this.cancelledOrderId = orderId;
+        this.cancelledUserId = userId;
+        this.cancelledSide = side;
         this.price = price;
-        this.quantity = quantity;
+        this.quantity = unfilledQuantity;
         this.timestamp = timestamp;
     }
 
-    public long getCancelledUserId() {
-        return buyerId != 0L ? buyerId : sellerId;
-    }
-
-    public long getCancelledOrderId() {
-        return buyerOrderId != 0L ? buyerOrderId : sellerOrderId;
+    public void setCancelRejected(long orderId, long userId, long timestamp) {
+        this.execType = ExecutionType.CANCEL_REJECTED;
+        this.tradeId = 0L;
+        this.buyerUserId = 0L;
+        this.buyerOrderId = 0L;
+        this.sellerUserId = 0L;
+        this.sellerOrderId = 0L;
+        this.cancelledOrderId = orderId;
+        this.cancelledUserId = userId;
+        this.cancelledSide = null;
+        this.price = 0L;
+        this.quantity = 0L;
+        this.timestamp = timestamp;
     }
 }
-

@@ -3,6 +3,7 @@ package com.rudra.apextrade.account.model;
 import com.rudra.apextrade.common.domain.Side;
 import lombok.Getter;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Getter
@@ -14,6 +15,7 @@ public class ActiveOrder {
     private final long initialQuantity;
     private final AtomicLong remainingQuantity;
     private final long timestamp;
+    private final AtomicBoolean pendingCancel = new AtomicBoolean(false);
 
     public ActiveOrder(long orderId, Side side, long price, long quantity, long timestamp) {
         this.orderId = orderId;
@@ -31,5 +33,16 @@ public class ActiveOrder {
     public long reduceQuantity(long amount) {
         return remainingQuantity.addAndGet(-amount);
     }
-}
 
+    public boolean isPendingCancel() {
+        return pendingCancel.get();
+    }
+
+    public boolean markPendingCancel() {
+        return pendingCancel.compareAndSet(false, true);
+    }
+
+    public void clearPendingCancel() {
+        pendingCancel.set(false);
+    }
+}

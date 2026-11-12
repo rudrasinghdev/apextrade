@@ -78,6 +78,36 @@ class MatchingEngineTest {
     }
 
     @Test
+    @DisplayName("Cancel Reject: Cancelling non-existent or already filled order triggers onCancelRejected")
+    void testCancelOrderRejection() {
+        boolean[] rejected = new boolean[1];
+        long[] rejectedOrder = new long[1];
+        long[] rejectedUser = new long[1];
+
+        com.rudra.apextrade.common.wire.ExecutionWireCodec.Handler listener = new com.rudra.apextrade.common.wire.ExecutionWireCodec.Handler() {
+            @Override
+            public void onTrade(long tradeId, long buyerUserId, long buyerOrderId, long sellerUserId, long sellerOrderId, long price, long quantity, long timestamp) {}
+            @Override
+            public void onCancelled(long orderId, long userId, Side side, long price, long unfilledQuantity, long timestamp) {}
+            @Override
+            public void onCancelRejected(long orderId, long userId, long timestamp) {
+                rejected[0] = true;
+                rejectedOrder[0] = orderId;
+                rejectedUser[0] = userId;
+            }
+        };
+
+        MatchingEngine listenerEngine = new MatchingEngine(orderBook, 0L, listener);
+
+        // Cancel order that never existed
+        boolean result = listenerEngine.cancelOrder(999L, 42L);
+        assertFalse(result, "Cancelling non-existent order must return false");
+        assertTrue(rejected[0], "onCancelRejected callback must be fired");
+        assertEquals(999L, rejectedOrder[0]);
+        assertEquals(42L, rejectedUser[0]);
+    }
+
+    @Test
     @DisplayName("Edge Case: Partial Fill with remaining quantity resting in book")
     void testPartialFillRemainingQuantityRests() {
         // Maker ASK of 40 at 65,000

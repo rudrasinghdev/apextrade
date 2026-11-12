@@ -8,7 +8,7 @@ public record ActiveOrderResponse(
         long price,
         long initialQuantity,
         long remainingQuantity,
+        boolean pendingCancel,
         long timestampNs
 ) {
 }
-

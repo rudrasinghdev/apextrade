@@ -24,7 +24,7 @@ public class OrderCommandPublisher {
         long sequence = ringBuffer.next();
         try {
             OrderCommandEvent event = ringBuffer.get(sequence);
-            event.setPlaceOrder(orderId, userId, side, price, quantity, orderType, timestamp);
+            event.setPlaceOrder(userId, orderId, side, price, quantity, orderType, timestamp);
         } finally {
             ringBuffer.publish(sequence);
         }
@@ -37,7 +37,7 @@ public class OrderCommandPublisher {
         long sequence = ringBuffer.next();
         try {
             OrderCommandEvent event = ringBuffer.get(sequence);
-            event.setCancelOrder(orderId, userId, timestamp);
+            event.setCancelOrder(userId, orderId, timestamp);
         } finally {
             ringBuffer.publish(sequence);
         }

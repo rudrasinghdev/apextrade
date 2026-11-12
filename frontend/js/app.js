@@ -1,6 +1,6 @@
 /**
  * ApexTrade Core - High-Performance Trading Terminal Client
- * REST Ingress & Gateway Risk Subsystem (Zero-WebSocket Staging Mode)
+ * REST Ingress & Real-Time WebSocket Execution Stream
  */
 
 (() => {
@@ -15,6 +15,8 @@
                   window.location.hostname === '';
   const API_HOST = savedHost || (isLocal ? `localhost:${DEFAULT_PORT}` : PROD_HOST);
   const REST_BASE_URL = API_HOST.includes('localhost') ? `http://${API_HOST}` : `https://${API_HOST}`;
+  const WS_PROTOCOL = REST_BASE_URL.startsWith('https') ? 'wss:' : 'ws:';
+  const WS_URL = `${WS_PROTOCOL}//${API_HOST}/ws/trades`;
 
   // --- Persistent Storage Keys ---
   const STORAGE_TOKEN_KEY = 'apextrade_jwt';
@@ -34,7 +36,9 @@
     activeSide: 'BUY',
     activeOrderType: 'LIMIT',
     myOrders: [],
-    auditLogs: []
+    auditLogs: [],
+    lastTradedPrice: 50000,
+    wsConnected: false
   };
   state.myOrders = loadOrdersFromStorage();
 
@@ -83,6 +87,8 @@
     btnTerminalLogout: document.getElementById('btn-terminal-logout'),
     latencyDisplay: document.getElementById('latency-display'),
     ltpDisplay: document.getElementById('ltp-display'),
+    wsDot: document.getElementById('ws-dot'),
+    wsStatusText: document.getElementById('ws-status-text'),
 
     // DMA Order Form
     orderForm: document.getElementById('order-form'),
@@ -269,6 +275,7 @@
       renderMyOrders();
       fetchBalance();
       syncActiveOrders();
+      connectWebSocket();
 
       // User is logged in -> show Launchpad, hide Auth Box
       elements.authContainer.classList.add('hidden');
@@ -283,6 +290,10 @@
       elements.terminalUserEmail.textContent = state.user.email;
       elements.terminalUserId.textContent = `#${state.user.userId}`;
     } else {
+      if (socket) {
+        try { socket.close(); } catch(e){}
+        socket = null;
+      }
       state.myOrders = [];
       renderMyOrders();
 
@@ -436,6 +447,10 @@
 
   // Logout Handlers
   function handleLogout() {
+    if (socket) {
+      try { socket.close(); } catch (e) {}
+      socket = null;
+    }
     state.token = null;
     state.user = null;
     state.balance = null;
@@ -446,18 +461,216 @@
     updateAuthUI();
   }
 
+  // ==========================================================================
+  // Real-Time WebSocket Market & Execution Stream (/ws/trades)
+  // ==========================================================================
+  let socket = null;
+  let socketReconnectTimer = null;
+
+  function connectWebSocket() {
+    if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+
+    if (socketReconnectTimer) {
+      clearTimeout(socketReconnectTimer);
+      socketReconnectTimer = null;
+    }
+
+    try {
+      socket = new WebSocket(WS_URL);
+
+      socket.onopen = () => {
+        state.wsConnected = true;
+        if (elements.wsDot) {
+          elements.wsDot.className = 'status-dot dot-online';
+        }
+        if (elements.wsStatusText) {
+          elements.wsStatusText.textContent = 'WS STREAM: LIVE (BTC/USDT)';
+        }
+        logAudit('WS_CONNECTED', 101, 0, `Subscribed to live market stream at ${WS_URL}`);
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          handleWsMessage(msg);
+        } catch (err) {
+          console.error('[WebSocket] Failed to parse message:', err);
+        }
+      };
+
+      socket.onclose = () => {
+        state.wsConnected = false;
+        if (elements.wsDot) {
+          elements.wsDot.className = 'status-dot dot-offline';
+        }
+        if (elements.wsStatusText) {
+          elements.wsStatusText.textContent = 'WS STREAM: DISCONNECTED';
+        }
+        scheduleWsReconnect();
+      };
+
+      socket.onerror = () => {
+        state.wsConnected = false;
+        if (elements.wsDot) {
+          elements.wsDot.className = 'status-dot dot-offline';
+        }
+        if (elements.wsStatusText) {
+          elements.wsStatusText.textContent = 'WS STREAM: RETRYING...';
+        }
+        try { socket.close(); } catch (e) {}
+      };
+    } catch (e) {
+      scheduleWsReconnect();
+    }
+  }
+
+  function scheduleWsReconnect() {
+    if (socketReconnectTimer) return;
+    socketReconnectTimer = setTimeout(() => {
+      socketReconnectTimer = null;
+      if (state.token) {
+        connectWebSocket();
+      }
+    }, 2000);
+  }
+
+  function handleWsMessage(msg) {
+    if (!msg || !msg.type) return;
+
+    if (msg.type === 'TRADE') {
+      handleWsTrade(msg);
+    } else if (msg.type === 'CANCEL') {
+      handleWsCancel(msg);
+    } else if (msg.type === 'CANCEL_REJECTED') {
+      handleWsCancelRejected(msg);
+    }
+  }
+
+  function handleWsTrade(trade) {
+    const tradePrice = Number(trade.price);
+    const prevPrice = state.lastTradedPrice || tradePrice;
+    state.lastTradedPrice = tradePrice;
+
+    // 1. Update Reference Price / LTP in navbar with flash effect
+    if (elements.ltpDisplay) {
+      elements.ltpDisplay.textContent = tradePrice.toLocaleString('en-US', { minimumFractionDigits: 2 });
+      elements.ltpDisplay.classList.remove('ltp-flash-up', 'ltp-flash-down');
+      if (tradePrice >= prevPrice) {
+        elements.ltpDisplay.classList.add('ltp-flash-up');
+      } else {
+        elements.ltpDisplay.classList.add('ltp-flash-down');
+      }
+      setTimeout(() => {
+        if (elements.ltpDisplay) {
+          elements.ltpDisplay.classList.remove('ltp-flash-up', 'ltp-flash-down');
+        }
+      }, 500);
+    }
+
+    // 2. Check if current user is buyer or seller
+    const currentUserId = state.user?.userId;
+    const isMyBuyer = trade.buyerId === currentUserId;
+    const isMySeller = trade.sellerId === currentUserId;
+
+    if (isMyBuyer || isMySeller) {
+      let matched = false;
+      state.myOrders.forEach(o => {
+        if (o.orderId === trade.buyerOrderId || o.orderId === trade.sellerOrderId) {
+          o.status = 'FILLED';
+          matched = true;
+        }
+      });
+
+      if (matched) {
+        saveOrdersToStorage();
+        renderMyOrders();
+      }
+      fetchBalance();
+
+      showBanner(
+        'success',
+        `MATCH EXECUTED (Trade #${trade.tradeId})`,
+        `Filled ${trade.quantity} BTC @ ${tradePrice.toLocaleString()} USD | Buyer #${trade.buyerId} x Seller #${trade.sellerId}`
+      );
+    }
+
+    logAudit(
+      'TRADE_EXEC',
+      200,
+      0,
+      `Trade #${trade.tradeId}: ${trade.quantity} BTC @ ${tradePrice.toLocaleString()} USD (B:#${trade.buyerId} S:#${trade.sellerId})`
+    );
+  }
+
+  function handleWsCancel(cancel) {
+    let matched = false;
+    state.myOrders.forEach(o => {
+      if (o.orderId === cancel.orderId) {
+        o.status = 'CANCELLED';
+        matched = true;
+      }
+    });
+
+    if (matched) {
+      saveOrdersToStorage();
+      renderMyOrders();
+    }
+
+    if (state.user && cancel.userId === state.user.userId) {
+      fetchBalance();
+      showBanner('success', `ORDER #${cancel.orderId} CANCELLED`, 'Engine confirmed order cancellation.');
+    }
+
+    logAudit(
+      'WS_CANCEL',
+      200,
+      0,
+      `Cancel confirmed for Order #${cancel.orderId} (Trader #${cancel.userId})`
+    );
+  }
+
+  function handleWsCancelRejected(reject) {
+    let matched = false;
+    state.myOrders.forEach(o => {
+      if (o.orderId === reject.orderId) {
+        if (o.status === 'PENDING_CANCEL') {
+          o.status = 'QUEUED';
+        }
+        matched = true;
+      }
+    });
+
+    if (matched) {
+      saveOrdersToStorage();
+      renderMyOrders();
+    }
+
+    if (state.user && reject.userId === state.user.userId) {
+      showBanner('error', 'CANCEL REJECTED', `Order #${reject.orderId} could not be cancelled (already executed or missing from book).`);
+    }
+
+    logAudit(
+      'WS_CANCEL_REJECT',
+      409,
+      0,
+      `Cancel rejected for Order #${reject.orderId} (Trader #${reject.userId})`
+    );
+  }
+
   elements.btnLogout.addEventListener('click', handleLogout);
   elements.btnTerminalLogout.addEventListener('click', handleLogout);
 
-  // Upgrade to Terminal (WebSocket Staging Button)
+  // Upgrade to Terminal (WebSocket Live Stream)
   elements.btnUpgradeTerminal.addEventListener('click', () => {
-    // Switch to Terminal View (No active WS connection per specification)
     elements.welcomeView.classList.add('hidden');
     elements.terminalView.classList.remove('hidden');
     fetchBalance();
     syncActiveOrders();
     renderMyOrders();
-    logAudit('UPGRADE_TERMINAL', 200, 0, 'Entered Trading Terminal. WebSocket stream held in standby.');
+    connectWebSocket();
+    logAudit('UPGRADE_TERMINAL', 200, 0, 'Entered Trading Terminal. WebSocket stream connected.');
   });
 
   elements.btnBackLaunchpad.addEventListener('click', () => {
@@ -651,23 +864,33 @@
   async function cancelOrder(orderId) {
     if (!state.token) return;
 
+    // Immediately debounce in UI: mark as PENDING_CANCEL
+    const target = state.myOrders.find(o => o.orderId === orderId);
+    if (target) {
+      target.status = 'PENDING_CANCEL';
+      saveOrdersToStorage();
+      renderMyOrders();
+    }
+
     const res = await apiRequest(`/api/v1/orders/${orderId}`, {
       method: 'DELETE'
     });
 
     if (res.ok && res.data && res.data.status === 'ACCEPTED') {
-      showBanner('success', `ORDER #${orderId} CANCELLED`, `Cancelled in matching pipeline in ${res.elapsedMs} ms`);
-      const target = state.myOrders.find(o => o.orderId === orderId);
-      if (target) {
-        target.status = 'CANCELLED';
-        saveOrdersToStorage();
-        renderMyOrders();
-      }
-      logAudit('ORDER_CANCELLED', res.status, res.elapsedMs, `Order #${orderId} cancelled`);
-      fetchBalance();
+      showBanner('success', `CANCEL DISPATCHED (#${orderId})`, `Cancel forwarded to matching engine.`);
+      logAudit('CANCEL_DISPATCHED', res.status, res.elapsedMs, `Cancel order #${orderId} sent to engine`);
     } else {
       const errMsg = res.data?.message || res.data?.error || `Unable to cancel #${orderId}`;
-      showBanner('error', 'CANCEL FAILED', errMsg);
+      if (res.status === 409) {
+        showBanner('error', 'CANCEL ALREADY PENDING', errMsg);
+      } else {
+        showBanner('error', 'CANCEL FAILED', errMsg);
+        if (target && target.status === 'PENDING_CANCEL') {
+          target.status = 'QUEUED';
+          saveOrdersToStorage();
+          renderMyOrders();
+        }
+      }
       logAudit('CANCEL_FAILED', res.status, res.elapsedMs, errMsg);
     }
   }
@@ -677,20 +900,43 @@
     if (!state.token || !state.user) return;
     const res = await apiRequest('/api/v1/orders');
     if (res.ok && Array.isArray(res.data)) {
-      const activeIds = new Set(
-        res.data.map(item => (typeof item === 'object' && item !== null) ? item.orderId : item)
-      );
-      let changed = false;
-      state.myOrders.forEach(o => {
-        if (!activeIds.has(o.orderId) && (o.status === 'QUEUED' || o.status === 'NEW')) {
-          o.status = 'CANCELLED';
-          changed = true;
+      const serverActiveMap = new Map();
+      res.data.forEach(item => {
+        if (item && item.orderId) {
+          serverActiveMap.set(item.orderId, item);
         }
       });
-      if (changed) {
-        saveOrdersToStorage();
-        renderMyOrders();
-      }
+
+      // 1. Reconcile existing orders in local state
+      state.myOrders.forEach(o => {
+        if (serverActiveMap.has(o.orderId)) {
+          const sOrder = serverActiveMap.get(o.orderId);
+          o.quantity = sOrder.remainingQuantity;
+          if (sOrder.pendingCancel) {
+            o.status = 'PENDING_CANCEL';
+          }
+          serverActiveMap.delete(o.orderId);
+        } else if (o.status === 'QUEUED' || o.status === 'PENDING_CANCEL' || o.status === 'NEW') {
+          o.status = 'CANCELLED';
+        }
+      });
+
+      // 2. Add active orders from server not yet in local state (e.g. reload or multi-tab)
+      serverActiveMap.forEach(sOrder => {
+        state.myOrders.unshift({
+          orderId: sOrder.orderId,
+          userId: state.user.userId,
+          time: new Date(sOrder.timestampNs ? Math.round(sOrder.timestampNs / 1_000_000) : Date.now()).toLocaleTimeString(),
+          side: sOrder.side,
+          orderType: 'LIMIT',
+          price: sOrder.price,
+          quantity: sOrder.remainingQuantity,
+          status: sOrder.pendingCancel ? 'PENDING_CANCEL' : 'QUEUED'
+        });
+      });
+
+      saveOrdersToStorage();
+      renderMyOrders();
     }
   }
 
@@ -790,6 +1036,15 @@
       const tr = document.createElement('tr');
       const isBuy = order.side === 'BUY';
       const isCancelled = order.status === 'CANCELLED';
+      const isFilled = order.status === 'FILLED';
+      const isPendingCancel = order.status === 'PENDING_CANCEL';
+      const isTerminalState = isCancelled || isFilled;
+      const disableCancel = isTerminalState || isPendingCancel;
+
+      let cancelBtnText = 'Cancel';
+      if (isPendingCancel) cancelBtnText = 'Cancelling...';
+      else if (isCancelled) cancelBtnText = 'Cancelled';
+      else if (isFilled) cancelBtnText = 'Filled';
 
       tr.innerHTML = `
         <td class="font-mono text-muted">#${order.orderId}</td>
@@ -798,16 +1053,16 @@
         <td><span class="badge-type">${order.orderType}</span></td>
         <td class="font-mono font-bold">${typeof order.price === 'number' ? order.price.toLocaleString() : order.price}</td>
         <td class="font-mono">${order.quantity}</td>
-        <td><span class="status-pill status-${order.status.toLowerCase()}">${order.status}</span></td>
+        <td><span class="status-pill status-${order.status.toLowerCase().replace('_', '-')}">${order.status}</span></td>
         <td>
-          <button type="button" class="btn-cancel" data-order-id="${order.orderId}" ${isCancelled ? 'disabled' : ''}>
-            ${isCancelled ? 'Cancelled' : 'Cancel'}
+          <button type="button" class="btn-cancel" data-order-id="${order.orderId}" ${disableCancel ? 'disabled' : ''}>
+            ${cancelBtnText}
           </button>
         </td>
       `;
 
       const cancelBtn = tr.querySelector('.btn-cancel');
-      if (cancelBtn && !isCancelled) {
+      if (cancelBtn && !disableCancel) {
         cancelBtn.addEventListener('click', () => cancelOrder(order.orderId));
       }
 
@@ -816,7 +1071,7 @@
   }
 
   elements.btnClearOrders.addEventListener('click', () => {
-    state.myOrders = state.myOrders.filter(o => o.status !== 'CANCELLED');
+    state.myOrders = state.myOrders.filter(o => o.status !== 'CANCELLED' && o.status !== 'FILLED');
     saveOrdersToStorage();
     renderMyOrders();
   });

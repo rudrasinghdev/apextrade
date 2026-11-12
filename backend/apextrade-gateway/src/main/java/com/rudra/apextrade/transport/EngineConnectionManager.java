@@ -47,7 +47,7 @@ public class EngineConnectionManager implements ApplicationRunner, AutoCloseable
         connectToEngine();
     }
 
-    private synchronized boolean connectToEngine() {
+    private synchronized void connectToEngine() {
         try {
             if (this.socketChannel != null && this.socketChannel.isOpen()) {
                 try {
@@ -72,10 +72,8 @@ public class EngineConnectionManager implements ApplicationRunner, AutoCloseable
             log.info("[S1 Gateway Transport] Connected to S2 Matching Engine on port {}", enginePort);
 
             startExecutionReaderThread();
-            return true;
         } catch (IOException e) {
             log.warn("[S1 Gateway Transport] Could not connect to S2 Matching Engine: {}", e.getMessage());
-            return false;
         }
     }
 
@@ -113,7 +111,6 @@ public class EngineConnectionManager implements ApplicationRunner, AutoCloseable
                         ExecutionWireCodec.decodeFrames(directBuffer, executionPublisher);
                         directBuffer.compact();
                     } else {
-                        // High-efficiency backoff: spin-wait briefly, then park 10 microseconds to yield CPU
                         LockSupport.parkNanos(10_000L);
                     }
                 } catch (IOException e) {
