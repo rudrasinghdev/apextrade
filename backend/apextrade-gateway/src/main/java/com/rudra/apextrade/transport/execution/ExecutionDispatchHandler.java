@@ -16,6 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ExecutionDispatchHandler implements EventHandler<ExecutionEvent> {
 
+    private static final long QTY_SCALE_FACTOR = 100_000_000L;
+
     private final AccountService ledger;
     private final TradeWebSocketHandler webSocketHandler;
 
@@ -43,7 +45,7 @@ public class ExecutionDispatchHandler implements EventHandler<ExecutionEvent> {
     }
 
     private void handleTrade(ExecutionEvent trade) {
-        long usdCost = trade.getPrice() * trade.getQuantity();
+        long usdCost = Math.ceilDiv(Math.multiplyExact(trade.getPrice(), trade.getQuantity()), QTY_SCALE_FACTOR);
         long btcQuantity = trade.getQuantity();
 
         ledger.settleBuyTrade(trade.getBuyerUserId(), trade.getBuyerOrderId(), usdCost, btcQuantity);
@@ -52,16 +54,19 @@ public class ExecutionDispatchHandler implements EventHandler<ExecutionEvent> {
         log.info("[Gateway Settlement] Trade #{} settled in AccountService: Buyer #{} (-{} USD, +{} BTC) | Seller #{} (+{} USD, -{} BTC). Broadcasting to WebSocket /ws/trades.",
                 trade.getTradeId(), trade.getBuyerUserId(), usdCost, btcQuantity, trade.getSellerUserId(), usdCost, btcQuantity);
 
-        // Live WebSocket Broadcast to connected trading terminals
+        // Live WebSocket Broadcast to connected trading terminals (formatted decimal strings)
+        String formattedPrice = java.math.BigDecimal.valueOf(trade.getPrice()).movePointLeft(2).toPlainString();
+        String formattedQuantity = java.math.BigDecimal.valueOf(trade.getQuantity()).movePointLeft(8).toPlainString();
+
         String jsonPayload = String.format(
-                "{\"type\":\"TRADE\",\"tradeId\":%d,\"buyerId\":%d,\"buyerOrderId\":%d,\"sellerId\":%d,\"sellerOrderId\":%d,\"price\":%d,\"quantity\":%d,\"timestamp\":%d}",
+                "{\"type\":\"TRADE\",\"tradeId\":%d,\"buyerId\":%d,\"buyerOrderId\":%d,\"sellerId\":%d,\"sellerOrderId\":%d,\"price\":\"%s\",\"quantity\":\"%s\",\"timestamp\":%d}",
                 trade.getTradeId(),
                 trade.getBuyerUserId(),
                 trade.getBuyerOrderId(),
                 trade.getSellerUserId(),
                 trade.getSellerOrderId(),
-                trade.getPrice(),
-                trade.getQuantity(),
+                formattedPrice,
+                formattedQuantity,
                 trade.getTimestamp()
         );
         webSocketHandler.broadcast(jsonPayload);

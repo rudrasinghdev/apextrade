@@ -2,20 +2,19 @@ package com.rudra.apextrade.order.dto;
 
 import com.rudra.apextrade.common.domain.OrderType;
 import com.rudra.apextrade.common.domain.Side;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 
 public record OrderRequest(
         @NotNull(message = "Side must be BUY or SELL")
         Side side,
 
-        @Positive(message = "Price must be greater than zero")
-        long price,
+        @NotBlank(message = "Price is required")
+        String price,
 
-        @Positive(message = "Quantity must be greater than zero")
-        long quantity,
+        @NotBlank(message = "Quantity must be greater than zero")
+        String quantity,
 
         @NotNull(message = "OrderType must be LIMIT or MARKET")
         OrderType orderType
 ) {}
-

@@ -749,27 +749,33 @@
   }
 
   function updateNotional() {
-    const qty = Number(elements.inputQty.value) || 0;
-    const price = state.activeOrderType === 'LIMIT' ? (Number(elements.inputPrice.value) || 0) : 50000;
+    const qty = parseFloat(elements.inputQty.value) || 0;
+    const price = state.activeOrderType === 'LIMIT' ? (parseFloat(elements.inputPrice.value) || 0) : (state.lastTradedPrice || 50000);
     const notional = qty * price;
-    elements.summaryNotional.textContent = `${notional.toLocaleString()} USDT`;
+    elements.summaryNotional.textContent = `${notional.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`;
   }
 
   // Steppers
   elements.btnPriceMinus.addEventListener('click', () => {
-    elements.inputPrice.value = Math.max(1, Number(elements.inputPrice.value) - 10);
+    const cur = parseFloat(elements.inputPrice.value) || 50000;
+    elements.inputPrice.value = Math.max(0.01, cur - 10).toFixed(2);
     updateNotional();
   });
   elements.btnPricePlus.addEventListener('click', () => {
-    elements.inputPrice.value = Math.max(1, Number(elements.inputPrice.value) + 10);
+    const cur = parseFloat(elements.inputPrice.value) || 50000;
+    elements.inputPrice.value = (cur + 10).toFixed(2);
     updateNotional();
   });
   elements.btnQtyMinus.addEventListener('click', () => {
-    elements.inputQty.value = Math.max(1, Number(elements.inputQty.value) - 10);
+    const cur = parseFloat(elements.inputQty.value) || 1;
+    const step = cur <= 1 ? 0.1 : 1;
+    elements.inputQty.value = Math.max(0.00000001, parseFloat((cur - step).toFixed(8)));
     updateNotional();
   });
   elements.btnQtyPlus.addEventListener('click', () => {
-    elements.inputQty.value = Math.max(1, Number(elements.inputQty.value) + 10);
+    const cur = parseFloat(elements.inputQty.value) || 1;
+    const step = cur < 1 ? 0.1 : 1;
+    elements.inputQty.value = parseFloat((cur + step).toFixed(8));
     updateNotional();
   });
 
@@ -781,11 +787,11 @@
     btn.addEventListener('click', () => {
       if (btn.dataset.priceOffset !== undefined) {
         const offset = Number(btn.dataset.priceOffset);
-        const base = 50000;
-        elements.inputPrice.value = Math.max(1, base + offset);
+        const base = state.lastTradedPrice || 50000;
+        elements.inputPrice.value = Math.max(0.01, base + offset).toFixed(2);
       }
       if (btn.dataset.qty !== undefined) {
-        elements.inputQty.value = Number(btn.dataset.qty);
+        elements.inputQty.value = btn.dataset.qty;
       }
       updateNotional();
     });
@@ -819,22 +825,27 @@
       return;
     }
 
-    const qty = Number(elements.inputQty.value);
-    const price = state.activeOrderType === 'LIMIT' ? Number(elements.inputPrice.value) : 0;
+    const qtyStr = elements.inputQty.value.trim();
+    const priceStr = state.activeOrderType === 'LIMIT' 
+      ? elements.inputPrice.value.trim() 
+      : (state.lastTradedPrice || 50000).toFixed(2);
 
-    if (qty <= 0) {
+    const qtyNum = Number(qtyStr);
+    const priceNum = Number(priceStr);
+
+    if (!qtyStr || isNaN(qtyNum) || qtyNum <= 0) {
       showBanner('error', 'INVALID QUANTITY', 'Quantity must be greater than zero.');
       return;
     }
-    if (state.activeOrderType === 'LIMIT' && price <= 0) {
+    if (state.activeOrderType === 'LIMIT' && (!priceStr || isNaN(priceNum) || priceNum <= 0)) {
       showBanner('error', 'INVALID PRICE', 'Price must be greater than zero for LIMIT orders.');
       return;
     }
 
     const payload = {
       side: state.activeSide,
-      price: price,
-      quantity: qty,
+      price: priceStr,
+      quantity: qtyStr,
       orderType: state.activeOrderType
     };
 
@@ -860,8 +871,8 @@
         time: new Date().toLocaleTimeString(),
         side: state.activeSide,
         orderType: state.activeOrderType,
-        price: state.activeOrderType === 'LIMIT' ? price : 'MARKET',
-        quantity: qty,
+        price: state.activeOrderType === 'LIMIT' ? priceStr : 'MARKET',
+        quantity: qtyStr,
         status: 'QUEUED'
       };
 
@@ -935,7 +946,9 @@
       state.myOrders.forEach(o => {
         if (serverActiveMap.has(o.orderId)) {
           const sOrder = serverActiveMap.get(o.orderId);
-          o.quantity = sOrder.remainingQuantity;
+          o.quantity = typeof sOrder.remainingQuantity === 'number'
+            ? (sOrder.remainingQuantity / 100_000_000).toFixed(8)
+            : sOrder.remainingQuantity;
           if (sOrder.pendingCancel) {
             o.status = 'PENDING_CANCEL';
           }
@@ -953,8 +966,8 @@
           time: new Date(sOrder.timestampNs ? Math.round(sOrder.timestampNs / 1_000_000) : Date.now()).toLocaleTimeString(),
           side: sOrder.side,
           orderType: 'LIMIT',
-          price: sOrder.price,
-          quantity: sOrder.remainingQuantity,
+          price: typeof sOrder.price === 'number' ? (sOrder.price / 100).toFixed(2) : sOrder.price,
+          quantity: typeof sOrder.remainingQuantity === 'number' ? (sOrder.remainingQuantity / 100_000_000).toFixed(8) : sOrder.remainingQuantity,
           status: sOrder.pendingCancel ? 'PENDING_CANCEL' : 'QUEUED'
         });
       });
@@ -974,8 +987,8 @@
     elements.btnDemoCross.disabled = true;
     elements.btnDemoCross.textContent = '⏳ Posting Buy & Sell Orders...';
 
-    const testPrice = 50000;
-    const testQty = 25;
+    const testPrice = "50000.00";
+    const testQty = "1.00000000";
 
     // 1. Post BUY
     const buyRes = await apiRequest('/api/v1/orders', {

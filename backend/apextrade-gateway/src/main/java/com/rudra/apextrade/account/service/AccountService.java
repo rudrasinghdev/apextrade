@@ -15,8 +15,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class AccountService {
 
-    public static final long DEFAULT_INITIAL_USD = 10_000_000L;
-    public static final long DEFAULT_INITIAL_BTC = 500_000_000L;
+    public static final long DEFAULT_INITIAL_USD = 1_000_000_000L;
+    public static final long DEFAULT_INITIAL_BTC = 10_000_000_000L;
 
     private final ConcurrentHashMap<Long, Account> ledger = new ConcurrentHashMap<>();
 
@@ -94,7 +94,6 @@ public class AccountService {
                 account.getTotalUsd(),
                 account.getAvailableBtc(),
                 account.getReservedBtc(),
-                account.getTotalBtc()
-        );
+                account.getTotalBtc());
     }
 }

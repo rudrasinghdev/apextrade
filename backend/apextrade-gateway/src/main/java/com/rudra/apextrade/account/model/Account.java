@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class Account {
 
+    private static final long QTY_SCALE_FACTOR = 100_000_000L;
     private final AtomicLong availableUsd;
     private final AtomicLong reservedUsd;
 
@@ -25,7 +26,8 @@ public class Account {
     }
 
     public boolean reserveBuyMargin(long orderId, long price, long quantity, long timestampNs) {
-        long usdAmount = price * quantity;
+        // Exact cost in cents: (cents * satoshis) / 10^8
+        long usdAmount = Math.ceilDiv(Math.multiplyExact(price, quantity), QTY_SCALE_FACTOR);
         if (reserveFunds(availableUsd, reservedUsd, usdAmount)) {
             activeOrders.put(orderId, new ActiveOrder(orderId, Side.BUY, price, quantity, timestampNs));
             return true;
@@ -78,7 +80,8 @@ public class Account {
         if (order != null) {
             long remainingQty = order.getRemainingQuantity();
             if (order.getSide() == Side.BUY) {
-                releaseFunds(availableUsd, reservedUsd, remainingQty * order.getPrice());
+                long remainingUsd = Math.ceilDiv(Math.multiplyExact(order.getPrice(), remainingQty), QTY_SCALE_FACTOR);
+                releaseFunds(availableUsd, reservedUsd, remainingUsd);
             } else {
                 releaseFunds(availableBtc, reservedBtc, remainingQty);
             }

@@ -38,7 +38,7 @@ class OrderServiceTest {
     @DisplayName("Cancel Fence: Initial cancel sets pendingCancel flag and dispatches to Disruptor")
     void testInitialCancelSucceeds() {
         // Place an active order
-        OrderRequest placeReq = new OrderRequest(Side.BUY, 50_000L, 1L, OrderType.LIMIT);
+        OrderRequest placeReq = new OrderRequest(Side.BUY, "50000.00", "1.00000000", OrderType.LIMIT);
         OrderResponse placeResp = orderService.placeOrder(USER_ID, placeReq);
         long orderId = placeResp.orderId();
 
@@ -59,7 +59,7 @@ class OrderServiceTest {
     @Test
     @DisplayName("Cancel Fence: Duplicate cancel while in-flight throws DuplicateCancelException")
     void testDuplicateCancelThrows() {
-        OrderRequest placeReq = new OrderRequest(Side.BUY, 50_000L, 1L, OrderType.LIMIT);
+        OrderRequest placeReq = new OrderRequest(Side.BUY, "50000.00", "1.00000000", OrderType.LIMIT);
         OrderResponse placeResp = orderService.placeOrder(USER_ID, placeReq);
         long orderId = placeResp.orderId();
 

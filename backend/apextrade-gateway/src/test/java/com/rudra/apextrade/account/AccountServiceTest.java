@@ -58,13 +58,13 @@ class AccountServiceTest {
     @DisplayName("Account Ledger Facade: reserveBuyMargin atomically locks margin")
     void testReserveBuyMarginFacade() {
         accountService.createAccount(101L);
-        // 50,000 USD * 40 units = 2,000,000 USD margin
-        boolean reserved = accountService.reserveBuyMargin(101L, 1L, 50_000L, 40L, System.nanoTime());
+        // 50,000 USD (5,000,000 cents) * 40 BTC (4,000,000,000 sats) = 2,000,000 USD (200,000,000 cents) margin
+        boolean reserved = accountService.reserveBuyMargin(101L, 1L, 5_000_000L, 4_000_000_000L, System.nanoTime());
 
         assertTrue(reserved);
         AccountBalanceResponse balance = accountService.getBalance(101L);
-        assertEquals(8_000_000L, balance.availableUsd());
-        assertEquals(2_000_000L, balance.reservedUsd());
+        assertEquals(AccountService.DEFAULT_INITIAL_USD - 200_000_000L, balance.availableUsd());
+        assertEquals(200_000_000L, balance.reservedUsd());
         assertNotNull(accountService.getActiveOrder(101L, 1L));
     }
 
@@ -72,11 +72,11 @@ class AccountServiceTest {
     @DisplayName("Account Ledger Facade: cancelOrder releases reserved margin")
     void testCancelOrderFacade() {
         accountService.createAccount(101L);
-        accountService.reserveBuyMargin(101L, 1L, 50_000L, 40L, System.nanoTime());
+        accountService.reserveBuyMargin(101L, 1L, 5_000_000L, 4_000_000_000L, System.nanoTime());
         accountService.cancelOrder(101L, 1L);
 
         AccountBalanceResponse balance = accountService.getBalance(101L);
-        assertEquals(10_000_000L, balance.availableUsd());
+        assertEquals(AccountService.DEFAULT_INITIAL_USD, balance.availableUsd());
         assertEquals(0L, balance.reservedUsd());
         assertNull(accountService.getActiveOrder(101L, 1L));
     }
@@ -98,7 +98,8 @@ class AccountServiceTest {
             executor.submit(() -> {
                 try {
                     startLatch.await();
-                    if (account.reserveBuyMargin(orderId, 200L, 1L, System.nanoTime())) {
+                    // 200 cents * 100,000,000 sats / 100,000,000 = 200 cents margin
+                    if (account.reserveBuyMargin(orderId, 200L, 100_000_000L, System.nanoTime())) {
                         successCount.incrementAndGet();
                     }
                 } catch (InterruptedException e) {
@@ -123,43 +124,43 @@ class AccountServiceTest {
     @DisplayName("Partial Fill & Settle: Partial match maintains active order until fully filled")
     void testPartialFillAndSettlement() {
         accountService.createAccount(101L);
-        // Buyer places order for 10 BTC @ 50,000 USD = 500,000 USD margin
-        accountService.reserveBuyMargin(101L, 1L, 50_000L, 10L, System.nanoTime());
+        // Buyer places order for 10 BTC (1,000,000,000 sats) @ 50,000 USD (5,000,000 cents) = 500,000 USD (50,000,000 cents) margin
+        accountService.reserveBuyMargin(101L, 1L, 5_000_000L, 1_000_000_000L, System.nanoTime());
 
         Account account = accountService.getAccount(101L);
-        assertEquals(500_000L, account.getReservedUsd());
-        assertEquals(AccountService.DEFAULT_INITIAL_USD - 500_000L, account.getAvailableUsd());
+        assertEquals(50_000_000L, account.getReservedUsd());
+        assertEquals(AccountService.DEFAULT_INITIAL_USD - 50_000_000L, account.getAvailableUsd());
         assertEquals(1, accountService.getActiveOrders(101L).size());
 
-        // Partial match 1: 3 BTC @ 50,000 USD = 150,000 USD cost
-        accountService.settleBuyTrade(101L, 1L, 150_000L, 3L);
+        // Partial match 1: 3 BTC (300,000,000 sats) @ 50,000 USD = 150,000 USD (15,000,000 cents) cost
+        accountService.settleBuyTrade(101L, 1L, 15_000_000L, 300_000_000L);
 
-        // Order should STILL be active with 7 BTC remaining
+        // Order should STILL be active with 7 BTC (700,000,000 sats) remaining
         assertNotNull(accountService.getActiveOrder(101L, 1L));
         assertEquals(1, accountService.getActiveOrders(101L).size());
-        assertEquals(7L, accountService.getActiveOrders(101L).iterator().next().getRemainingQuantity());
-        assertEquals(350_000L, account.getReservedUsd());
-        assertEquals(AccountService.DEFAULT_INITIAL_BTC + 3L, account.getAvailableBtc());
+        assertEquals(700_000_000L, accountService.getActiveOrders(101L).iterator().next().getRemainingQuantity());
+        assertEquals(35_000_000L, account.getReservedUsd());
+        assertEquals(AccountService.DEFAULT_INITIAL_BTC + 300_000_000L, account.getAvailableBtc());
 
-        // Partial match 2: 7 BTC @ 50,000 USD = 350,000 USD cost (fully filled)
-        accountService.settleBuyTrade(101L, 1L, 350_000L, 7L);
+        // Partial match 2: 7 BTC (700,000,000 sats) @ 50,000 USD = 350,000 USD (35,000,000 cents) cost (fully filled)
+        accountService.settleBuyTrade(101L, 1L, 35_000_000L, 700_000_000L);
 
         // Order should now be completely removed from active orders
         assertNull(accountService.getActiveOrder(101L, 1L));
         assertEquals(0, accountService.getActiveOrders(101L).size());
         assertEquals(0L, account.getReservedUsd());
-        assertEquals(AccountService.DEFAULT_INITIAL_BTC + 10L, account.getAvailableBtc());
+        assertEquals(AccountService.DEFAULT_INITIAL_BTC + 1_000_000_000L, account.getAvailableBtc());
     }
 
     @Test
     @DisplayName("Partial Fill Then Cancel: Cancel releases remaining margin after partial fill")
     void testPartialFillThenCancel() {
         accountService.createAccount(101L);
-        // Buyer places order for 10 BTC @ 50,000 USD = 500,000 USD margin
-        accountService.reserveBuyMargin(101L, 1L, 50_000L, 10L, System.nanoTime());
+        // Buyer places order for 10 BTC (1,000,000,000 sats) @ 50,000 USD (5,000,000 cents) = 500,000 USD (50,000,000 cents) margin
+        accountService.reserveBuyMargin(101L, 1L, 5_000_000L, 1_000_000_000L, System.nanoTime());
 
-        // Partial match: 4 BTC filled, cost 200,000 USD
-        accountService.settleBuyTrade(101L, 1L, 200_000L, 4L);
+        // Partial match: 4 BTC (400,000,000 sats) filled, cost 200,000 USD (20,000,000 cents)
+        accountService.settleBuyTrade(101L, 1L, 20_000_000L, 400_000_000L);
 
         // Cancel remaining 6 BTC
         accountService.cancelOrder(101L, 1L);
@@ -167,21 +168,21 @@ class AccountServiceTest {
         Account account = accountService.getAccount(101L);
         assertNull(accountService.getActiveOrder(101L, 1L));
         assertEquals(0L, account.getReservedUsd());
-        assertEquals(AccountService.DEFAULT_INITIAL_USD - 200_000L, account.getAvailableUsd());
-        assertEquals(AccountService.DEFAULT_INITIAL_BTC + 4L, account.getAvailableBtc());
+        assertEquals(AccountService.DEFAULT_INITIAL_USD - 20_000_000L, account.getAvailableUsd());
+        assertEquals(AccountService.DEFAULT_INITIAL_BTC + 400_000_000L, account.getAvailableBtc());
     }
 
     @Test
     @DisplayName("Get Active Order By ID: O(1) single-order lookup and null check")
     void testGetActiveOrderById() {
         accountService.createAccount(101L);
-        accountService.reserveBuyMargin(101L, 42L, 50_000L, 5L, System.nanoTime());
+        accountService.reserveBuyMargin(101L, 42L, 5_000_000L, 500_000_000L, System.nanoTime());
 
         var order = accountService.getActiveOrder(101L, 42L);
         assertNotNull(order);
         assertEquals(42L, order.getOrderId());
-        assertEquals(5L, order.getInitialQuantity());
-        assertEquals(5L, order.getRemainingQuantity());
+        assertEquals(500_000_000L, order.getInitialQuantity());
+        assertEquals(500_000_000L, order.getRemainingQuantity());
 
         assertNull(accountService.getActiveOrder(101L, 999L), "Non-existent order should return null");
 

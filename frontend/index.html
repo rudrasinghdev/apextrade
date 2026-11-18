@@ -273,7 +273,7 @@
                   <label for="input-price">Limit Price (USDT)</label>
                   <div class="input-stepper-box">
                     <button type="button" class="stepper-btn" id="btn-price-minus">-10</button>
-                    <input type="number" id="input-price" class="input-base input-stepper font-mono" value="50000" min="1" step="any" required>
+                    <input type="number" id="input-price" class="input-base input-stepper font-mono" value="50000.00" min="0.01" step="any" placeholder="0.00" required>
                     <button type="button" class="stepper-btn" id="btn-price-plus">+10</button>
                   </div>
                   <div class="quick-preset-row">
@@ -287,17 +287,18 @@
 
                 <!-- Quantity Field -->
                 <div class="form-field" id="group-qty">
-                  <label for="input-qty">Quantity</label>
+                  <label for="input-qty">Quantity (BTC)</label>
                   <div class="input-stepper-box">
-                    <button type="button" class="stepper-btn" id="btn-qty-minus">-10</button>
-                    <input type="number" id="input-qty" class="input-base input-stepper font-mono" value="10" min="1" step="any" required>
-                    <button type="button" class="stepper-btn" id="btn-qty-plus">+10</button>
+                    <button type="button" class="stepper-btn" id="btn-qty-minus">-0.1</button>
+                    <input type="number" id="input-qty" class="input-base input-stepper font-mono" value="1.0" min="0.00000001" step="any" placeholder="0.00000000" required>
+                    <button type="button" class="stepper-btn" id="btn-qty-plus">+0.1</button>
                   </div>
                   <div class="quick-preset-row">
+                    <button type="button" class="preset-tag" data-qty="0.1">0.1</button>
+                    <button type="button" class="preset-tag" data-qty="0.5">0.5</button>
+                    <button type="button" class="preset-tag" data-qty="1">1.0</button>
+                    <button type="button" class="preset-tag" data-qty="5">5.0</button>
                     <button type="button" class="preset-tag" data-qty="10">10</button>
-                    <button type="button" class="preset-tag" data-qty="50">50</button>
-                    <button type="button" class="preset-tag" data-qty="100">100</button>
-                    <button type="button" class="preset-tag" data-qty="500">500</button>
                   </div>
                 </div>
 
