@@ -63,8 +63,8 @@ class AccountServiceTest {
 
         assertTrue(reserved);
         AccountBalanceResponse balance = accountService.getBalance(101L);
-        assertEquals(AccountService.DEFAULT_INITIAL_USD - 200_000_000L, balance.availableUsd());
-        assertEquals(200_000_000L, balance.reservedUsd());
+        assertEquals("8000000.00", balance.availableUsd());
+        assertEquals("2000000.00", balance.reservedUsd());
         assertNotNull(accountService.getActiveOrder(101L, 1L));
     }
 
@@ -76,8 +76,8 @@ class AccountServiceTest {
         accountService.cancelOrder(101L, 1L);
 
         AccountBalanceResponse balance = accountService.getBalance(101L);
-        assertEquals(AccountService.DEFAULT_INITIAL_USD, balance.availableUsd());
-        assertEquals(0L, balance.reservedUsd());
+        assertEquals("10000000.00", balance.availableUsd());
+        assertEquals("0.00", balance.reservedUsd());
         assertNull(accountService.getActiveOrder(101L, 1L));
     }
 

@@ -84,4 +84,34 @@ class OrderServiceTest {
         });
         verify(publisher, never()).publishCancelOrder(anyLong(), anyLong(), anyLong());
     }
+
+    @Test
+    @DisplayName("Ingress Scale: Price with >2 decimal places must be rejected")
+    void testPriceExceedingMaxDecimalsThrows() {
+        OrderRequest req = new OrderRequest(Side.BUY, "50000.123", "1.0", OrderType.LIMIT);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            orderService.placeOrder(USER_ID, req);
+        });
+        assertTrue(ex.getMessage().contains("Exceeds max allowed decimal places (2)"));
+    }
+
+    @Test
+    @DisplayName("Ingress Scale: Quantity with >8 decimal places must be rejected")
+    void testQuantityExceedingMaxDecimalsThrows() {
+        OrderRequest req = new OrderRequest(Side.BUY, "50000.00", "0.123456789", OrderType.LIMIT);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            orderService.placeOrder(USER_ID, req);
+        });
+        assertTrue(ex.getMessage().contains("Exceeds max allowed decimal places (8)"));
+    }
+
+    @Test
+    @DisplayName("Ingress Scale: Non-positive or negative values must be rejected")
+    void testNonPositiveValuesThrow() {
+        OrderRequest zeroPrice = new OrderRequest(Side.BUY, "0.00", "1.0", OrderType.LIMIT);
+        assertThrows(IllegalArgumentException.class, () -> orderService.placeOrder(USER_ID, zeroPrice));
+
+        OrderRequest negQty = new OrderRequest(Side.BUY, "50000.00", "-0.5", OrderType.LIMIT);
+        assertThrows(IllegalArgumentException.class, () -> orderService.placeOrder(USER_ID, negQty));
+    }
 }

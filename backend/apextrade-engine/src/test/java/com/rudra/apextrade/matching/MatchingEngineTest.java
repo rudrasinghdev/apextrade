@@ -205,4 +205,58 @@ class MatchingEngineTest {
         engine.processOrder(106L, 6L, Side.BUY, 6_525_000L, 100L, OrderType.LIMIT, 1005L);
         assertEquals(6_520_000L, engine.getLastTradedPrice(), "LTP must transition to the final executed price level (65,200)");
     }
+
+    @Test
+    @DisplayName("STP CANCEL_MAKER: Self-trade prevented by cancelling own maker order and matching next trader in queue")
+    void testSelfTradePreventionCancelMaker() {
+        boolean[] cancelledFired = new boolean[1];
+        long[] cancelledOrderId = new long[1];
+        boolean[] tradeFired = new boolean[1];
+        long[] tradeBuyerId = new long[1];
+        long[] tradeSellerId = new long[1];
+
+        com.rudra.apextrade.common.wire.ExecutionWireCodec.Handler listener = new com.rudra.apextrade.common.wire.ExecutionWireCodec.Handler() {
+            @Override
+            public void onTrade(long tradeId, long buyerUserId, long buyerOrderId, long sellerUserId, long sellerOrderId, long price, long quantity, long timestamp) {
+                tradeFired[0] = true;
+                tradeBuyerId[0] = buyerUserId;
+                tradeSellerId[0] = sellerUserId;
+            }
+            @Override
+            public void onCancelled(long orderId, long userId, Side side, long price, long unfilledQuantity, long timestamp) {
+                cancelledFired[0] = true;
+                cancelledOrderId[0] = orderId;
+            }
+            @Override
+            public void onCancelRejected(long orderId, long userId, long timestamp) {}
+        };
+
+        MatchingEngine stpEngine = new MatchingEngine(orderBook, 5_000_000L, listener);
+
+        // 1. Trader 101 places resting SELL Order #1 at 50,000 (100 units)
+        stpEngine.processOrder(101L, 1L, Side.SELL, 5_000_000L, 100L, OrderType.LIMIT, 1000L);
+
+        // 2. Trader 102 places resting SELL Order #2 at 50,000 (100 units) behind Trader 101
+        stpEngine.processOrder(102L, 2L, Side.SELL, 5_000_000L, 100L, OrderType.LIMIT, 1001L);
+
+        assertEquals(2, orderBook.getBestAsk().getOrderCount());
+        assertEquals(200L, orderBook.getBestAsk().getTotalVolume());
+
+        // 3. Trader 101 submits aggressive BUY Order #3 at 50,000 (100 units)
+        // Expected: STP cancels Order #1 (Trader 101's maker), and Order #3 matches against Order #2 (Trader 102)!
+        stpEngine.processOrder(101L, 3L, Side.BUY, 5_000_000L, 100L, OrderType.LIMIT, 1002L);
+
+        // Verify: Cancel was fired for Order #1
+        assertTrue(cancelledFired[0], "STP must fire cancel event for Trader 101's resting maker order");
+        assertEquals(1L, cancelledOrderId[0], "Cancelled order must be Order #1");
+
+        // Verify: Trade was executed between Trader 101 and Trader 102 (no self-trade!)
+        assertTrue(tradeFired[0], "Taker order must continue and match next trader in queue");
+        assertEquals(101L, tradeBuyerId[0], "Buyer must be Trader 101");
+        assertEquals(102L, tradeSellerId[0], "Seller must be Trader 102 (not 101!)");
+
+        // Ask book must now be completely clear
+        assertNull(orderBook.getBestAsk(), "Both maker orders resolved (Order #1 cancelled via STP, Order #2 filled)");
+        assertFalse(orderBook.hasBids(), "Taker order must be completely filled");
+    }
 }

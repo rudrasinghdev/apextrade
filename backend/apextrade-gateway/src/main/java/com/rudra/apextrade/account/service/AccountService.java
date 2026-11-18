@@ -8,6 +8,8 @@ import com.rudra.apextrade.account.model.ActiveOrder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -30,14 +32,6 @@ public class AccountService {
                 userId, DEFAULT_INITIAL_USD, DEFAULT_INITIAL_BTC);
     }
 
-    public Account getOrCreateAccount(long userId) {
-        return ledger.computeIfAbsent(userId, id -> {
-            log.info("[Ledger Audit] Initialized paper trading account for Trader #{}: {} USD, {} BTC.",
-                    id, DEFAULT_INITIAL_USD, DEFAULT_INITIAL_BTC);
-            return new Account(DEFAULT_INITIAL_USD, DEFAULT_INITIAL_BTC);
-        });
-    }
-
     public Account getAccount(long userId) {
         Account account = ledger.get(userId);
         if (account == null) {
@@ -47,11 +41,11 @@ public class AccountService {
     }
 
     public boolean reserveBuyMargin(long userId, long orderId, long price, long quantity, long timestampNs) {
-        return getOrCreateAccount(userId).reserveBuyMargin(orderId, price, quantity, timestampNs);
+        return getAccount(userId).reserveBuyMargin(orderId, price, quantity, timestampNs);
     }
 
     public boolean reserveSellMargin(long userId, long orderId, long price, long quantity, long timestampNs) {
-        return getOrCreateAccount(userId).reserveSellMargin(orderId, price, quantity, timestampNs);
+        return getAccount(userId).reserveSellMargin(orderId, price, quantity, timestampNs);
     }
 
     public void settleBuyTrade(long userId, long orderId, long usdCost, long btcReceived) {
@@ -89,11 +83,19 @@ public class AccountService {
         Account account = getAccount(userId);
         return new AccountBalanceResponse(
                 userId,
-                account.getAvailableUsd(),
-                account.getReservedUsd(),
-                account.getTotalUsd(),
-                account.getAvailableBtc(),
-                account.getReservedBtc(),
-                account.getTotalBtc());
+                formatUsd(account.getAvailableUsd()),
+                formatUsd(account.getReservedUsd()),
+                formatUsd(account.getTotalUsd()),
+                formatBtc(account.getAvailableBtc()),
+                formatBtc(account.getReservedBtc()),
+                formatBtc(account.getTotalBtc()));
+    }
+
+    private static String formatUsd(long cents) {
+        return BigDecimal.valueOf(cents).movePointLeft(2).setScale(2, RoundingMode.UNNECESSARY).toPlainString();
+    }
+
+    private static String formatBtc(long sats) {
+        return BigDecimal.valueOf(sats).movePointLeft(8).setScale(8, RoundingMode.UNNECESSARY).toPlainString();
     }
 }

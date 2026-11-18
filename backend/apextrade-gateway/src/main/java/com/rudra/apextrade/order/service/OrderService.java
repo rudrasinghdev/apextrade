@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -37,7 +38,7 @@ public class OrderService {
     }
 
     public OrderResponse placeOrder(long userId, OrderRequest req) {
-        long price    = parse(req.price(), PRICE_SCALE);
+        long price = parse(req.price(), PRICE_SCALE);
         long quantity = parse(req.quantity(), QTY_SCALE);
 
         long orderId = orderIdSequence.getAndIncrement();
@@ -46,7 +47,7 @@ public class OrderService {
         if (req.side() == Side.BUY) {
             boolean success = accountService.reserveBuyMargin(userId, orderId, price, quantity, timestampNs);
             if (!success) {
-                long requiredUsdCents = Math.multiplyExact(price, quantity) / SATOSHI_SCALE;
+                long requiredUsdCents = Math.ceilDiv(Math.multiplyExact(price, quantity), SATOSHI_SCALE);
                 throw new InsufficientFundsException(
                         "Insufficient USD balance: required " + requiredUsdCents + " cents to place BUY order.");
             }
@@ -112,12 +113,20 @@ public class OrderService {
         return new ActiveOrderResponse(
                 order.getOrderId(),
                 order.getSide(),
-                order.getPrice(),
-                order.getInitialQuantity(),
-                order.getRemainingQuantity(),
+                formatUsd(order.getPrice()),
+                formatBtc(order.getInitialQuantity()),
+                formatBtc(order.getRemainingQuantity()),
                 order.isPendingCancel(),
                 order.getTimestamp()
         );
+    }
+
+    private static String formatUsd(long cents) {
+        return BigDecimal.valueOf(cents).movePointLeft(PRICE_SCALE).setScale(PRICE_SCALE, RoundingMode.UNNECESSARY).toPlainString();
+    }
+
+    private static String formatBtc(long sats) {
+        return BigDecimal.valueOf(sats).movePointLeft(QTY_SCALE).setScale(QTY_SCALE, RoundingMode.UNNECESSARY).toPlainString();
     }
 
     private static long parse(String val, int maxDecimals) {

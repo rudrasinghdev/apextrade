@@ -5,10 +5,9 @@ import com.rudra.apextrade.common.domain.Side;
 public record ActiveOrderResponse(
         long orderId,
         Side side,
-        long price,
-        long initialQuantity,
-        long remainingQuantity,
+        String price,
+        String initialQuantity,
+        String remainingQuantity,
         boolean pendingCancel,
         long timestampNs
-) {
-}
+) {}

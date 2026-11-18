@@ -26,7 +26,6 @@ public class Account {
     }
 
     public boolean reserveBuyMargin(long orderId, long price, long quantity, long timestampNs) {
-        // Exact cost in cents: (cents * satoshis) / 10^8
         long usdAmount = Math.ceilDiv(Math.multiplyExact(price, quantity), QTY_SCALE_FACTOR);
         if (reserveFunds(availableUsd, reservedUsd, usdAmount)) {
             activeOrders.put(orderId, new ActiveOrder(orderId, Side.BUY, price, quantity, timestampNs));
