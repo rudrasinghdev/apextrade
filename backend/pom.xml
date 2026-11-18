@@ -19,6 +19,7 @@
         <module>apextrade-common</module>
         <module>apextrade-engine</module>
         <module>apextrade-gateway</module>
+        <module>apextrade-bot</module>
     </modules>
 
     <properties>
