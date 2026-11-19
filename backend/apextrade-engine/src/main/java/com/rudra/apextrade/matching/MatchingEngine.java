@@ -74,8 +74,6 @@ public class MatchingEngine {
         while (remainingQuantity > 0 && !level.isEmpty()) {
             Order makerOrder = level.getFirstOrder();
 
-            // Self-Trade Prevention (STP - CANCEL_MAKER Policy)
-            // Prevents wash trading: if incoming taker matches maker from same user, cancel maker and continue.
             if (makerOrder.getUserId() == takerUserId) {
                 System.out.printf("[Matching Engine] STP TRIGGERED (CANCEL_MAKER): Trader #%d cannot cross with own resting Order #%d. Cancelling maker order.%n",
                         takerUserId, makerOrder.getOrderId());

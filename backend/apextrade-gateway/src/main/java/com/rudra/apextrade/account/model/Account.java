@@ -1,5 +1,6 @@
 package com.rudra.apextrade.account.model;
 
+import com.rudra.apextrade.account.exception.InsufficientFundsException;
 import com.rudra.apextrade.common.domain.Side;
 
 import java.util.Collection;
@@ -9,37 +10,38 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class Account {
 
-    private static final long QTY_SCALE_FACTOR = 100_000_000L;
-    private final AtomicLong availableUsd;
-    private final AtomicLong reservedUsd;
+    private final AtomicLong availableUsdt;
+    private final AtomicLong reservedUsdt;
 
     private final AtomicLong availableBtc;
     private final AtomicLong reservedBtc;
+    private static final long SATOSHI_PER_BTC = 100_000_000L;
 
     private final ConcurrentHashMap<Long, ActiveOrder> activeOrders = new ConcurrentHashMap<>();
 
-    public Account(long initialUsd, long initialBtc) {
-        this.availableUsd = new AtomicLong(initialUsd);
-        this.reservedUsd = new AtomicLong(0L);
+    public Account(long initialUsdt, long initialBtc) {
+        this.availableUsdt = new AtomicLong(initialUsdt);
+        this.reservedUsdt = new AtomicLong(0L);
         this.availableBtc = new AtomicLong(initialBtc);
         this.reservedBtc = new AtomicLong(0L);
     }
 
-    public boolean reserveBuyMargin(long orderId, long price, long quantity, long timestampNs) {
-        long usdAmount = Math.ceilDiv(Math.multiplyExact(price, quantity), QTY_SCALE_FACTOR);
-        if (reserveFunds(availableUsd, reservedUsd, usdAmount)) {
-            activeOrders.put(orderId, new ActiveOrder(orderId, Side.BUY, price, quantity, timestampNs));
-            return true;
+    public void reserveBuyMargin(long orderId, long price, long quantity, long timestampNs) {
+        long requiredUsdt = Math.ceilDiv(Math.multiplyExact(price, quantity), SATOSHI_PER_BTC);
+        if (!reserveFunds(availableUsdt, reservedUsdt, requiredUsdt)) {
+            throw new InsufficientFundsException(
+                    "Insufficient USDT balance: required " + requiredUsdt + " cents to place BUY order."
+            );
         }
-        return false;
+        activeOrders.put(orderId, new ActiveOrder(orderId, Side.BUY, price, quantity, timestampNs));
     }
-
-    public boolean reserveSellMargin(long orderId, long price, long quantity, long timestampNs) {
-        if (reserveFunds(availableBtc, reservedBtc, quantity)) {
-            activeOrders.put(orderId, new ActiveOrder(orderId, Side.SELL, price, quantity, timestampNs));
-            return true;
+    public void reserveSellMargin(long orderId, long price, long quantity, long timestampNs) {
+        if (!reserveFunds(availableBtc, reservedBtc, quantity)) {
+            throw new InsufficientFundsException(
+                    "Insufficient BTC balance: required " + quantity + " Satoshi to place SELL order."
+            );
         }
-        return false;
+        activeOrders.put(orderId, new ActiveOrder(orderId, Side.SELL, price, quantity, timestampNs));
     }
 
     private boolean reserveFunds(AtomicLong available, AtomicLong reserved, long amount) {
@@ -57,14 +59,14 @@ public class Account {
 
     public void settleBuyTrade(long orderId, long usdCost, long btcReceived) {
         reduceOrRemoveOrder(orderId, btcReceived);
-        reservedUsd.addAndGet(-usdCost);
+        reservedUsdt.addAndGet(-usdCost);
         availableBtc.addAndGet(btcReceived);
     }
 
     public void settleSellTrade(long orderId, long btcSold, long usdReceived) {
         reduceOrRemoveOrder(orderId, btcSold);
         reservedBtc.addAndGet(-btcSold);
-        availableUsd.addAndGet(usdReceived);
+        availableUsdt.addAndGet(usdReceived);
     }
 
     private void reduceOrRemoveOrder(long orderId, long filledQuantity) {
@@ -79,8 +81,8 @@ public class Account {
         if (order != null) {
             long remainingQty = order.getRemainingQuantity();
             if (order.getSide() == Side.BUY) {
-                long remainingUsd = Math.ceilDiv(Math.multiplyExact(order.getPrice(), remainingQty), QTY_SCALE_FACTOR);
-                releaseFunds(availableUsd, reservedUsd, remainingUsd);
+                long remainingUsd = Math.ceilDiv(Math.multiplyExact(order.getPrice(), remainingQty), SATOSHI_PER_BTC);
+                releaseFunds(availableUsdt, reservedUsdt, remainingUsd);
             } else {
                 releaseFunds(availableBtc, reservedBtc, remainingQty);
             }
@@ -100,16 +102,16 @@ public class Account {
         return Collections.unmodifiableCollection(activeOrders.values());
     }
 
-    public long getAvailableUsd() {
-        return availableUsd.get();
+    public long getAvailableUsdt() {
+        return availableUsdt.get();
     }
 
-    public long getReservedUsd() {
-        return reservedUsd.get();
+    public long getReservedUsdt() {
+        return reservedUsdt.get();
     }
 
-    public long getTotalUsd() {
-        return availableUsd.get() + reservedUsd.get();
+    public long getTotalUsdt() {
+        return availableUsdt.get() + reservedUsdt.get();
     }
 
     public long getAvailableBtc() {

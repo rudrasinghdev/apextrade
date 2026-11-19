@@ -12,21 +12,18 @@ abstract class ExecutionEventLhsPadding {
 abstract class ExecutionEventFields extends ExecutionEventLhsPadding {
     protected ExecutionType execType;
 
-    // Trade-specific fields
     protected long tradeId;
     protected long buyerUserId;
     protected long buyerOrderId;
     protected long sellerUserId;
     protected long sellerOrderId;
 
-    // Cancel-specific fields
     protected long cancelledOrderId;
     protected long cancelledUserId;
     protected Side cancelledSide;
 
-    // Shared primitive fields
     protected long price;
-    protected long quantity; // matchQuantity on Trade, unfilledQuantity on Cancel
+    protected long quantity;
     protected long timestamp;
 }
 

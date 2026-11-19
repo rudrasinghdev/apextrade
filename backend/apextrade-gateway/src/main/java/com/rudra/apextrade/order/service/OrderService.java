@@ -1,6 +1,5 @@
 package com.rudra.apextrade.order.service;
 
-import com.rudra.apextrade.account.exception.InsufficientFundsException;
 import com.rudra.apextrade.account.model.ActiveOrder;
 import com.rudra.apextrade.account.service.AccountService;
 import com.rudra.apextrade.common.domain.Side;
@@ -22,15 +21,12 @@ import java.util.concurrent.atomic.AtomicLong;
 @Service
 public class OrderService {
 
-    public static final long SATOSHI_SCALE = 100_000_000L;
-
     private final AtomicLong orderIdSequence = new AtomicLong(1);
     private final OrderCommandPublisher publisher;
     private final AccountService accountService;
 
-    public static final int PRICE_SCALE = 2;
-    public static final int QTY_SCALE   = 8;
-    public static final long QTY_SCALE_FACTOR = 100_000_000L;
+    public static final int USDT_SCALE = 2;
+    public static final int BTC_SCALE   = 8;
 
     public OrderService(OrderCommandPublisher publisher, AccountService accountService) {
         this.publisher = publisher;
@@ -38,25 +34,16 @@ public class OrderService {
     }
 
     public OrderResponse placeOrder(long userId, OrderRequest req) {
-        long price = parse(req.price(), PRICE_SCALE);
-        long quantity = parse(req.quantity(), QTY_SCALE);
+        long price = parse(req.price(), USDT_SCALE);
+        long quantity = parse(req.quantity(), BTC_SCALE);
 
         long orderId = orderIdSequence.getAndIncrement();
         long timestampNs = System.nanoTime();
 
         if (req.side() == Side.BUY) {
-            boolean success = accountService.reserveBuyMargin(userId, orderId, price, quantity, timestampNs);
-            if (!success) {
-                long requiredUsdCents = Math.ceilDiv(Math.multiplyExact(price, quantity), SATOSHI_SCALE);
-                throw new InsufficientFundsException(
-                        "Insufficient USD balance: required " + requiredUsdCents + " cents to place BUY order.");
-            }
+            accountService.reserveBuyMargin(userId, orderId, price, quantity, timestampNs);
         } else {
-            boolean success = accountService.reserveSellMargin(userId, orderId, price, quantity, timestampNs);
-            if (!success) {
-                throw new InsufficientFundsException(
-                        "Insufficient BTC balance: required " + quantity + " satoshis to place SELL order.");
-            }
+            accountService.reserveSellMargin(userId, orderId, price, quantity, timestampNs);
         }
 
         publisher.publishPlaceOrder(
@@ -72,6 +59,21 @@ public class OrderService {
                 orderId, userId, req.side(), quantity, price);
 
         return OrderResponse.accepted(orderId, timestampNs);
+    }
+
+    private static long parse(String val, int maxDecimals) {
+        try {
+            BigDecimal bd = new BigDecimal(val.trim());
+            if (bd.scale() > maxDecimals) {
+                throw new IllegalArgumentException("Exceeds max allowed decimal places (" + maxDecimals + "): " + val);
+            }
+            if (bd.signum() <= 0) {
+                throw new IllegalArgumentException("Value must be strictly positive: " + val);
+            }
+            return bd.movePointRight(maxDecimals).longValueExact();
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid numeric string: " + val);
+        }
     }
 
     public OrderResponse cancelOrder(long userId, long orderId) {
@@ -113,7 +115,7 @@ public class OrderService {
         return new ActiveOrderResponse(
                 order.getOrderId(),
                 order.getSide(),
-                formatUsd(order.getPrice()),
+                formatUsdt(order.getPrice()),
                 formatBtc(order.getInitialQuantity()),
                 formatBtc(order.getRemainingQuantity()),
                 order.isPendingCancel(),
@@ -121,26 +123,12 @@ public class OrderService {
         );
     }
 
-    private static String formatUsd(long cents) {
-        return BigDecimal.valueOf(cents).movePointLeft(PRICE_SCALE).setScale(PRICE_SCALE, RoundingMode.UNNECESSARY).toPlainString();
+    private static String formatUsdt(long cents) {
+        return BigDecimal.valueOf(cents).movePointLeft(USDT_SCALE).setScale(USDT_SCALE, RoundingMode.UNNECESSARY).toPlainString();
     }
 
-    private static String formatBtc(long sats) {
-        return BigDecimal.valueOf(sats).movePointLeft(QTY_SCALE).setScale(QTY_SCALE, RoundingMode.UNNECESSARY).toPlainString();
+    private static String formatBtc(long satoshi) {
+        return BigDecimal.valueOf(satoshi).movePointLeft(BTC_SCALE).setScale(BTC_SCALE, RoundingMode.UNNECESSARY).toPlainString();
     }
 
-    private static long parse(String val, int maxDecimals) {
-        try {
-            BigDecimal bd = new BigDecimal(val.trim());
-            if (bd.scale() > maxDecimals) {
-                throw new IllegalArgumentException("Exceeds max allowed decimal places (" + maxDecimals + "): " + val);
-            }
-            if (bd.signum() <= 0) {
-                throw new IllegalArgumentException("Value must be strictly positive: " + val);
-            }
-            return bd.movePointRight(maxDecimals).longValueExact();
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid numeric string: " + val);
-        }
-    }
 }

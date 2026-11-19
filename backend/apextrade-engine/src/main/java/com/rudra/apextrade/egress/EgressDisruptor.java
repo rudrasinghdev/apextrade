@@ -1,6 +1,6 @@
 package com.rudra.apextrade.egress;
 
-import com.lmax.disruptor.BusySpinWaitStrategy;
+import com.lmax.disruptor.YieldingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import com.rudra.apextrade.common.event.ExecutionEvent;
@@ -28,7 +28,7 @@ public class EgressDisruptor implements AutoCloseable {
                 BUFFER_SIZE,
                 threadFactory,
                 ProducerType.SINGLE,
-                new BusySpinWaitStrategy()
+                new YieldingWaitStrategy()
         );
 
         this.disruptor.handleEventsWith(this.dispatcher);

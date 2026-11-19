@@ -49,7 +49,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.rudra.apextrade.bot.MarketMakerApp</mainClass>
+                            <mainClass>com.rudra.apextrade.bot.LiquidityHarnessApp</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

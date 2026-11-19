@@ -13,8 +13,8 @@ public class OrderCommandPublisher {
         this.ringBuffer = ringBuffer;
     }
 
-    public void publishPlaceOrder(long userId, long orderId, Side side,
-                                   long price, long quantity, OrderType orderType, long timestamp) {
+    public void publishPlaceOrder(long userId, long orderId, Side side, long price,
+                                  long quantity, OrderType orderType, long timestamp) {
         long sequence = ringBuffer.next();
         try {
             OrderCommandEvent event = ringBuffer.get(sequence);

@@ -2,10 +2,6 @@ package com.rudra.apextrade.bot;
 
 import lombok.Getter;
 
-/**
- * High-performance, zero-allocation bounded mean-reverting fair price generator.
- * Uses a bitwise XORShift64 PRNG to walk price within [center - maxDev, center + maxDev].
- */
 public class FastFairPriceGenerator {
 
     @Getter
@@ -28,35 +24,29 @@ public class FastFairPriceGenerator {
         this.prngState = (seed == 0L) ? 0x9E3779B97F4A7C15L : seed;
     }
 
-    /**
-     * Generates next fair price in ~2-3ns without any heap allocations.
-     * Biases step direction toward centerPrice to enforce bounded mean-reversion.
-     */
-    public long nextPrice() {
-        // 1. XORShift64 bitwise step
+    public double nextPrice() {
+        return nextPriceCents() / 100.0;
+    }
+
+    public long nextPriceCents() {
         long x = prngState;
         x ^= (x << 13);
         x ^= (x >>> 7);
         x ^= (x << 17);
         prngState = x;
 
-        // 2. Mean-reverting direction logic
         long delta = currentPrice - centerPrice;
-        long rand = x & 0x7FFFFFFFFFFFFFFFL; // Positive long
+        long rand = x & 0x7FFFFFFFFFFFFFFFL;
 
         boolean moveUp;
         if (delta > 0) {
-            // Above center: 70% probability to pull down, 30% to push up
             moveUp = (rand % 100) < 30;
         } else if (delta < 0) {
-            // Below center: 70% probability to pull up, 30% to push down
             moveUp = (rand % 100) < 70;
         } else {
-            // At center: 50 / 50
             moveUp = (rand & 1) == 0;
         }
 
-        // 3. Apply step bounded by corridor
         if (moveUp) {
             if (currentPrice + tickStep <= maxPrice) {
                 currentPrice += tickStep;

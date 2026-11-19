@@ -9,9 +9,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class HealthController {
 
-    @GetMapping({"/health", "/api/health"})
+    @GetMapping("/api/health")
     public ResponseEntity<String> health() {
-        return ResponseEntity.ok("ApexTrade Core Online");
+        return ResponseEntity.ok("ApexTrade Gateway Online");
     }
 }
 

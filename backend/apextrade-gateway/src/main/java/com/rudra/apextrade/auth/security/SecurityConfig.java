@@ -28,7 +28,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
         return http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
@@ -43,7 +43,6 @@ public class SecurityConfig {
                                 "/favicon.ico",
                                 "/api/auth/**",
                                 "/api/health",
-                                "/health",
                                 "/ws/**"
                         ).permitAll()
                         .anyRequest().authenticated()

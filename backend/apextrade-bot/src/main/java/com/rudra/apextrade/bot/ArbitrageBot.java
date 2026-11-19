@@ -42,14 +42,17 @@ public class ArbitrageBot implements Runnable {
                 Thread.sleep(sweepIntervalMs);
 
                 // Sample fair price in dollars
-                double fairPrice = priceGen.nextPrice() / 100.0;
+                double fairPrice = priceGen.nextPrice();
                 Side side = toggleSide ? Side.BUY : Side.SELL;
                 toggleSide = !toggleSide;
 
-                long orderId = client.placeLimitOrder(session.token(), side, fairPrice, sweepQuantity);
+                // Aggressively cross the spread (maker half-spread is $0.50, ±$1.25 crosses top-of-book)
+                double sweepPrice = (side == Side.BUY) ? (fairPrice + 1.25) : Math.max(1.0, fairPrice - 1.25);
+
+                long orderId = client.placeLimitOrder(session.token(), side, sweepPrice, sweepQuantity);
                 if (orderId > 0) {
-                    System.out.printf("[Taker #%d] Cross Order #%d FIRED [%s %.4f BTC @ $%.2f]%n",
-                            session.userId(), orderId, side, sweepQuantity, fairPrice);
+                    System.out.printf("[Taker #%d] Cross Order #%d FIRED [%s %.4f BTC @ $%.2f (market anchor $%.2f)]%n",
+                            session.userId(), orderId, side, sweepQuantity, sweepPrice, fairPrice);
                 }
 
             } catch (InterruptedException e) {

@@ -17,19 +17,19 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class AccountService {
 
-    public static final long DEFAULT_INITIAL_USD = 1_000_000_000L;
+    public static final long DEFAULT_INITIAL_USDT = 1_000_000_000L;
     public static final long DEFAULT_INITIAL_BTC = 10_000_000_000L;
 
     private final ConcurrentHashMap<Long, Account> ledger = new ConcurrentHashMap<>();
 
     public void createAccount(long userId) {
-        Account newAccount = new Account(DEFAULT_INITIAL_USD, DEFAULT_INITIAL_BTC);
+        Account newAccount = new Account(DEFAULT_INITIAL_USDT, DEFAULT_INITIAL_BTC);
         Account existing = ledger.putIfAbsent(userId, newAccount);
         if (existing != null) {
             throw new AccountAlreadyExistsException("Account already exists for trader #" + userId);
         }
         log.info("[Ledger Audit] Paper trading account initialized for Trader #{}: {} USD, {} BTC.",
-                userId, DEFAULT_INITIAL_USD, DEFAULT_INITIAL_BTC);
+                userId, DEFAULT_INITIAL_USDT, DEFAULT_INITIAL_BTC);
     }
 
     public Account getAccount(long userId) {
@@ -40,62 +40,51 @@ public class AccountService {
         return account;
     }
 
-    public boolean reserveBuyMargin(long userId, long orderId, long price, long quantity, long timestampNs) {
-        return getAccount(userId).reserveBuyMargin(orderId, price, quantity, timestampNs);
+    public void reserveBuyMargin(long userId, long orderId, long price, long quantity, long timestampNs) {
+        getAccount(userId).reserveBuyMargin(orderId, price, quantity, timestampNs);
     }
 
-    public boolean reserveSellMargin(long userId, long orderId, long price, long quantity, long timestampNs) {
-        return getAccount(userId).reserveSellMargin(orderId, price, quantity, timestampNs);
+    public void reserveSellMargin(long userId, long orderId, long price, long quantity, long timestampNs) {
+        getAccount(userId).reserveSellMargin(orderId, price, quantity, timestampNs);
     }
 
     public void settleBuyTrade(long userId, long orderId, long usdCost, long btcReceived) {
-        Account account = ledger.get(userId);
-        if (account != null) {
-            account.settleBuyTrade(orderId, usdCost, btcReceived);
-        }
+        getAccount(userId).settleBuyTrade(orderId, usdCost, btcReceived);
     }
 
     public void settleSellTrade(long userId, long orderId, long btcSold, long usdReceived) {
-        Account account = ledger.get(userId);
-        if (account != null) {
-            account.settleSellTrade(orderId, btcSold, usdReceived);
-        }
+        getAccount(userId).settleSellTrade(orderId, btcSold, usdReceived);
     }
 
     public void cancelOrder(long userId, long orderId) {
-        Account account = ledger.get(userId);
-        if (account != null) {
-            account.cancelOrder(orderId);
-        }
+        getAccount(userId).cancelOrder(orderId);
     }
 
     public ActiveOrder getActiveOrder(long userId, long orderId) {
-        Account account = ledger.get(userId);
-        return account != null ? account.getActiveOrder(orderId) : null;
+        return getAccount(userId).getActiveOrder(orderId);
     }
 
     public Collection<ActiveOrder> getActiveOrders(long userId) {
-        Account account = ledger.get(userId);
-        return account != null ? account.getActiveOrders() : java.util.Collections.emptyList();
+        return getAccount(userId).getActiveOrders();
     }
 
     public AccountBalanceResponse getBalance(long userId) {
         Account account = getAccount(userId);
         return new AccountBalanceResponse(
                 userId,
-                formatUsd(account.getAvailableUsd()),
-                formatUsd(account.getReservedUsd()),
-                formatUsd(account.getTotalUsd()),
+                formatUsdt(account.getAvailableUsdt()),
+                formatUsdt(account.getReservedUsdt()),
+                formatUsdt(account.getTotalUsdt()),
                 formatBtc(account.getAvailableBtc()),
                 formatBtc(account.getReservedBtc()),
                 formatBtc(account.getTotalBtc()));
     }
 
-    private static String formatUsd(long cents) {
+    private static String formatUsdt(long cents) {
         return BigDecimal.valueOf(cents).movePointLeft(2).setScale(2, RoundingMode.UNNECESSARY).toPlainString();
     }
 
-    private static String formatBtc(long sats) {
-        return BigDecimal.valueOf(sats).movePointLeft(8).setScale(8, RoundingMode.UNNECESSARY).toPlainString();
+    private static String formatBtc(long satoshi) {
+        return BigDecimal.valueOf(satoshi).movePointLeft(8).setScale(8, RoundingMode.UNNECESSARY).toPlainString();
     }
 }

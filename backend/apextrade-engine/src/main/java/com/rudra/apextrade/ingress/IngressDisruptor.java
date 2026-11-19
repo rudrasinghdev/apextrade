@@ -1,6 +1,6 @@
 package com.rudra.apextrade.ingress;
 
-import com.lmax.disruptor.BusySpinWaitStrategy;
+import com.lmax.disruptor.YieldingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import com.rudra.apextrade.common.event.OrderCommandEvent;
@@ -26,7 +26,7 @@ public class IngressDisruptor implements AutoCloseable {
                 BUFFER_SIZE,
                 threadFactory,
                 ProducerType.SINGLE,
-                new BusySpinWaitStrategy()
+                new YieldingWaitStrategy()
         );
 
         this.disruptor.handleEventsWith(new OrderCommandHandler(matchingEngine));
