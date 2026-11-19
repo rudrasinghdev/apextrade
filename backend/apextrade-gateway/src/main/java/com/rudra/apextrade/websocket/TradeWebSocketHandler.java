@@ -9,16 +9,38 @@ import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorato
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Component
 public class TradeWebSocketHandler extends TextWebSocketHandler {
 
     private final CopyOnWriteArraySet<WebSocketSession> sessions = new CopyOnWriteArraySet<>();
+    private final AtomicReference<String> latestLtp = new AtomicReference<>("50000.00");
 
     @Override
     public void afterConnectionEstablished(@NonNull WebSocketSession session) {
         WebSocketSession safeSession = new ConcurrentWebSocketSessionDecorator(session, 100, 512 * 1024);
         sessions.add(safeSession);
+
+        // Immediate snapshot push on connect to eliminate UI cold-start staleness
+        try {
+            String snapshotJson = String.format(
+                    "{\"type\":\"SNAPSHOT\",\"symbol\":\"BTC/USDT\",\"price\":\"%s\",\"timestamp\":%d}",
+                    latestLtp.get(),
+                    System.currentTimeMillis()
+            );
+            safeSession.sendMessage(new TextMessage(snapshotJson));
+        } catch (Exception ignored) {}
+    }
+
+    public void updateLatestPrice(String price) {
+        if (price != null && !price.isBlank()) {
+            latestLtp.set(price);
+        }
+    }
+
+    public String getLatestPrice() {
+        return latestLtp.get();
     }
 
     @Override

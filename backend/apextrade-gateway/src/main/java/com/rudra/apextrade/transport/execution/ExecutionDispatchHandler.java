@@ -58,6 +58,8 @@ public class ExecutionDispatchHandler implements EventHandler<ExecutionEvent> {
         String formattedPrice = java.math.BigDecimal.valueOf(trade.getPrice()).movePointLeft(2).toPlainString();
         String formattedQuantity = java.math.BigDecimal.valueOf(trade.getQuantity()).movePointLeft(8).toPlainString();
 
+        webSocketHandler.updateLatestPrice(formattedPrice);
+
         String jsonPayload = String.format(
                 "{\"type\":\"TRADE\",\"tradeId\":%d,\"buyerId\":%d,\"buyerOrderId\":%d,\"sellerId\":%d,\"sellerOrderId\":%d,\"price\":\"%s\",\"quantity\":\"%s\",\"timestamp\":%d}",
                 trade.getTradeId(),
