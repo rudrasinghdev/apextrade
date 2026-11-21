@@ -768,7 +768,8 @@
   function updateBalanceUI() {
     if (!state.balance) return;
 
-    const usdStr = formatUsdDisplay(state.balance.availableUsd);
+    const rawUsd = state.balance.availableUsd ?? state.balance.availableUsdt;
+    const usdStr = formatUsdDisplay(rawUsd);
     const btcStr = formatBtcDisplay(state.balance.availableBtc);
 
     if (el.lpAvailableUsd) el.lpAvailableUsd.textContent = usdStr;
