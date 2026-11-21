@@ -91,9 +91,11 @@ public class MarketMakerBot implements Runnable {
                     if (bidPrice > 0) {
                         executor.submit(() -> {
                             try {
-                                long bidId = client.placeLimitOrder(session.token(), Side.BUY, bidPrice, sliceQty);
+                                long bidId = client.placeLimitOrder(session, Side.BUY, bidPrice, sliceQty);
                                 activeBidOrderIds[idx] = bidId;
-                                placedBids.incrementAndGet();
+                                if (bidId > 0) {
+                                    placedBids.incrementAndGet();
+                                }
                             } catch (Exception e) {
                                 System.err.println("[Maker] Failed to place bid: " + e.getMessage());
                             }
@@ -102,9 +104,11 @@ public class MarketMakerBot implements Runnable {
 
                     executor.submit(() -> {
                         try {
-                            long askId = client.placeLimitOrder(session.token(), Side.SELL, askPrice, sliceQty);
+                            long askId = client.placeLimitOrder(session, Side.SELL, askPrice, sliceQty);
                             activeAskOrderIds[idx] = askId;
-                            placedAsks.incrementAndGet();
+                            if (askId > 0) {
+                                placedAsks.incrementAndGet();
+                            }
                         } catch (Exception e) {
                             System.err.println("[Maker] Failed to place ask: " + e.getMessage());
                         }
@@ -129,13 +133,13 @@ public class MarketMakerBot implements Runnable {
                 final long bidId = activeBidOrderIds[idx];
                 activeBidOrderIds[idx] = 0L;
                 if (bidId != 0L) {
-                    executor.submit(() -> client.cancelOrder(session.token(), bidId));
+                    executor.submit(() -> client.cancelOrder(session, bidId));
                 }
 
                 final long askId = activeAskOrderIds[idx];
                 activeAskOrderIds[idx] = 0L;
                 if (askId != 0L) {
-                    executor.submit(() -> client.cancelOrder(session.token(), askId));
+                    executor.submit(() -> client.cancelOrder(session, askId));
                 }
             }
         }

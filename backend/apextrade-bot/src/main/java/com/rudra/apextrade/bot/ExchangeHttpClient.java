@@ -11,6 +11,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ExchangeHttpClient {
 
@@ -18,22 +20,76 @@ public class ExchangeHttpClient {
     private final HttpClient httpClient;
     private final ObjectMapper mapper;
 
-    public record AuthSession(String token, long userId, String email) {}
+    public static class AuthSession {
+        private final AtomicLong userIdRef;
+        private final String email;
+        private final String password;
+        private final AtomicReference<String> tokenRef;
+
+        public AuthSession(long userId, String email, String password, String initialToken) {
+            this.userIdRef = new AtomicLong(userId);
+            this.email = email;
+            this.password = password;
+            this.tokenRef = new AtomicReference<>(initialToken);
+        }
+
+        public long userId() { return userIdRef.get(); }
+        public String email() { return email; }
+        public String password() { return password; }
+        public String token() { return tokenRef.get(); }
+        public void update(String newToken, long newUserId) {
+            tokenRef.set(newToken);
+            userIdRef.set(newUserId);
+        }
+    }
 
     public ExchangeHttpClient(String baseUrl) {
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
         this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
+                .connectTimeout(Duration.ofSeconds(15))
                 .build();
         this.mapper = new ObjectMapper();
     }
 
     public AuthSession authenticate(String email, String password) throws Exception {
+        String token = fetchToken(email, password);
+        long userId = parseUserId(token);
+        return new AuthSession(userId, email, password, token);
+    }
+
+    public synchronized String refreshToken(AuthSession session) {
+        try {
+            System.out.printf("[Auth Refresh] Re-authenticating session for %s (Trader #%d)...%n",
+                    session.email(), session.userId());
+            String newToken = fetchToken(session.email(), session.password());
+            long newUserId = parseUserId(newToken);
+            session.update(newToken, newUserId);
+            System.out.printf("[Auth Refresh] Successfully renewed 24h JWT for %s (Trader #%d).%n", session.email(), session.userId());
+            return newToken;
+        } catch (Exception e) {
+            System.err.printf("[Auth Refresh Failed] Unable to renew JWT for %s: %s%n",
+                    session.email(), e.getMessage());
+            return session.token();
+        }
+    }
+
+    private String fetchToken(String email, String password) throws Exception {
+        try {
+            String regBody = mapper.writeValueAsString(Map.of("email", email, "password", password));
+            HttpRequest regReq = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/api/auth/register"))
+                    .header("Content-Type", "application/json")
+                    .timeout(Duration.ofSeconds(15))
+                    .POST(HttpRequest.BodyPublishers.ofString(regBody))
+                    .build();
+            httpClient.send(regReq, HttpResponse.BodyHandlers.ofString());
+        } catch (Exception ignored) {}
+
         String loginBody = mapper.writeValueAsString(Map.of("email", email, "password", password));
         HttpRequest logReq = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/api/auth/login"))
                 .header("Content-Type", "application/json")
-                .timeout(Duration.ofSeconds(5))
+                .timeout(Duration.ofSeconds(15))
                 .POST(HttpRequest.BodyPublishers.ofString(loginBody))
                 .build();
 
@@ -43,12 +99,24 @@ public class ExchangeHttpClient {
         }
 
         JsonNode node = mapper.readTree(logRes.body());
-        String token = node.get("token").asText();
-        long userId = node.get("userId").asLong();
-        return new AuthSession(token, userId, email);
+        return node.get("token").asText();
     }
 
-    public long placeLimitOrder(String token, Side side, double price, double quantity) throws Exception {
+    private long parseUserId(String token) {
+        try {
+            String[] parts = token.split("\\.");
+            if (parts.length >= 2) {
+                byte[] decoded = java.util.Base64.getUrlDecoder().decode(parts[1]);
+                JsonNode payload = mapper.readTree(decoded);
+                if (payload.has("userId")) {
+                    return payload.get("userId").asLong();
+                }
+            }
+        } catch (Exception ignored) {}
+        return 0L;
+    }
+
+    public long placeLimitOrder(AuthSession session, Side side, double price, double quantity) throws Exception {
         Map<String, Object> payload = Map.of(
                 "side", side.name(),
                 "orderType", OrderType.LIMIT.name(),
@@ -57,15 +125,14 @@ public class ExchangeHttpClient {
         );
 
         String json = mapper.writeValueAsString(payload);
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + "/api/v1/orders"))
-                .header("Content-Type", "application/json")
-                .header("Authorization", "Bearer " + token)
-                .timeout(Duration.ofSeconds(5))
-                .POST(HttpRequest.BodyPublishers.ofString(json))
-                .build();
+        HttpResponse<String> res = sendOrderRequest(session.token(), json);
 
-        HttpResponse<String> res = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+        // Transparent auto-renewal if 24h JWT expired
+        if (res.statusCode() == 401 || res.statusCode() == 403) {
+            String newToken = refreshToken(session);
+            res = sendOrderRequest(newToken, json);
+        }
+
         if (res.statusCode() == 200 || res.statusCode() == 202) {
             JsonNode node = mapper.readTree(res.body());
             return node.has("orderId") ? node.get("orderId").asLong() : 0L;
@@ -74,20 +141,41 @@ public class ExchangeHttpClient {
         return 0L;
     }
 
-    public boolean cancelOrder(String token, long orderId) {
+    private HttpResponse<String> sendOrderRequest(String token, String json) throws Exception {
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/v1/orders"))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + token)
+                .timeout(Duration.ofSeconds(10))
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+        return httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+    }
+
+    public boolean cancelOrder(AuthSession session, long orderId) {
         if (orderId <= 0) return false;
         try {
-            HttpRequest req = HttpRequest.newBuilder()
-                    .uri(URI.create(baseUrl + "/api/v1/orders/" + orderId))
-                    .header("Authorization", "Bearer " + token)
-                    .timeout(Duration.ofSeconds(5))
-                    .DELETE()
-                    .build();
+            HttpResponse<String> res = sendCancelRequest(session.token(), orderId);
 
-            HttpResponse<String> res = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+            // Transparent auto-renewal if 24h JWT expired
+            if (res.statusCode() == 401 || res.statusCode() == 403) {
+                String newToken = refreshToken(session);
+                res = sendCancelRequest(newToken, orderId);
+            }
+
             return res.statusCode() == 200 || res.statusCode() == 202;
         } catch (Exception e) {
             return false;
         }
+    }
+
+    private HttpResponse<String> sendCancelRequest(String token, long orderId) throws Exception {
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/v1/orders/" + orderId))
+                .header("Authorization", "Bearer " + token)
+                .timeout(Duration.ofSeconds(10))
+                .DELETE()
+                .build();
+        return httpClient.send(req, HttpResponse.BodyHandlers.ofString());
     }
 }

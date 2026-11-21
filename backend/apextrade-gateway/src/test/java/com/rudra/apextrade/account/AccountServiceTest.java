@@ -199,4 +199,59 @@ class AccountServiceTest {
         accountService.cancelOrder(101L, 42L);
         assertNull(accountService.getActiveOrder(101L, 42L), "Cancelled order should no longer be active");
     }
+
+    @Test
+    @DisplayName("Price Improvement: Full fill at better price refunds unspent reserved margin")
+    void testPriceImprovementRefundFullFill() {
+        accountService.createAccount(201L);
+        // Buyer places limit BUY for 1 BTC (100,000,000 sats) @ 50,000 USDT (5,000,000 cents) = 50,000 USDT margin
+        accountService.reserveBuyMargin(201L, 10L, 5_000_000L, 100_000_000L, System.nanoTime());
+
+        Account account = accountService.getAccount(201L);
+        assertEquals(5_000_000L, account.getReservedUsdt());
+        assertEquals(AccountService.DEFAULT_INITIAL_USDT - 5_000_000L, account.getAvailableUsdt());
+
+        // Fill executes with price improvement at 49,500 USDT (4,950,000 cents)
+        // usdCost = 4,950,000 cents, btcReceived = 1 BTC
+        accountService.settleBuyTrade(201L, 10L, 4_950_000L, 100_000_000L);
+
+        // Reserved USDT should now be completely 0 (no stranded margin)
+        assertEquals(0L, account.getReservedUsdt());
+        // Available USDT should only have 49,500 USDT deducted (refunded 500 USDT unspent margin)
+        assertEquals(AccountService.DEFAULT_INITIAL_USDT - 4_950_000L, account.getAvailableUsdt());
+        // BTC balance credited
+        assertEquals(AccountService.DEFAULT_INITIAL_BTC + 100_000_000L, account.getAvailableBtc());
+        // Order removed from active orders
+        assertNull(accountService.getActiveOrder(201L, 10L));
+    }
+
+    @Test
+    @DisplayName("Price Improvement: Partial fill at better price refunds margin proportionally")
+    void testPriceImprovementRefundPartialFill() {
+        accountService.createAccount(202L);
+        // Buyer places limit BUY for 2 BTC (200,000,000 sats) @ 50,000 USDT (5,000,000 cents) = 100,000 USDT (10,000,000 cents) margin
+        accountService.reserveBuyMargin(202L, 20L, 5_000_000L, 200_000_000L, System.nanoTime());
+
+        Account account = accountService.getAccount(202L);
+        assertEquals(10_000_000L, account.getReservedUsdt());
+        assertEquals(AccountService.DEFAULT_INITIAL_USDT - 10_000_000L, account.getAvailableUsdt());
+
+        // Partial fill 1: 1 BTC at 49,000 USDT (4,900,000 cents)
+        // Reserved for 1 BTC was 5,000,000. Price improvement = 100,000 cents ($1,000).
+        accountService.settleBuyTrade(202L, 20L, 4_900_000L, 100_000_000L);
+
+        // Remaining reserved margin should be exactly 1 BTC @ 50,000 USDT = 5,000,000 cents
+        assertEquals(5_000_000L, account.getReservedUsdt());
+        // Available USDT should only reflect 49,000 USDT spent
+        assertEquals(AccountService.DEFAULT_INITIAL_USDT - 10_000_000L + 100_000L, account.getAvailableUsdt());
+        assertEquals(AccountService.DEFAULT_INITIAL_BTC + 100_000_000L, account.getAvailableBtc());
+
+        // Cancel remaining 1 BTC
+        accountService.cancelOrder(202L, 20L);
+
+        // Reserved should now be 0
+        assertEquals(0L, account.getReservedUsdt());
+        // Available USDT should be initial - 49,000 USDT (the only cost incurred)
+        assertEquals(AccountService.DEFAULT_INITIAL_USDT - 4_900_000L, account.getAvailableUsdt());
+    }
 }

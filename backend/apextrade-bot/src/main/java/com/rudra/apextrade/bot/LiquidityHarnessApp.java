@@ -29,8 +29,7 @@ public class LiquidityHarnessApp {
         );
 
         try {
-            System.out.println("[Auth] Authenticating Maker Bot (bot_maker@apextrade.com)...");
-            ExchangeHttpClient.AuthSession makerSession = client.authenticate("bot_maker@apextrade.com", "BotPassword123!");
+            ExchangeHttpClient.AuthSession makerSession = authenticateWithRetry(client, "bot_maker@apextrade.com", "BotPassword123!");
             System.out.printf("[Auth] Maker Bot authenticated! Trader #%d%n", makerSession.userId());
 
             MarketMakerBot makerBot = new MarketMakerBot(
@@ -45,8 +44,7 @@ public class LiquidityHarnessApp {
                     1000    // refresh every 1.0s
             );
 
-            System.out.println("[Auth] Authenticating Taker Bot (bot_taker@apextrade.com)...");
-            ExchangeHttpClient.AuthSession takerSession = client.authenticate("bot_taker@apextrade.com", "BotPassword123!");
+            ExchangeHttpClient.AuthSession takerSession = authenticateWithRetry(client, "bot_taker@apextrade.com", "BotPassword123!");
             System.out.printf("[Auth] Taker Bot authenticated! Trader #%d%n", takerSession.userId());
 
             ArbitrageBot takerBot = new ArbitrageBot(
@@ -72,6 +70,18 @@ public class LiquidityHarnessApp {
         } catch (Exception e) {
             System.err.println("[Fatal Bot Error] " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    private static ExchangeHttpClient.AuthSession authenticateWithRetry(ExchangeHttpClient client, String email, String password) throws InterruptedException {
+        while (true) {
+            try {
+                System.out.printf("[Auth] Authenticating %s...%n", email);
+                return client.authenticate(email, password);
+            } catch (Exception e) {
+                System.err.printf("[Auth Retry] Unable to authenticate %s (%s). Retrying in 2 seconds...%n", email, e.getMessage());
+                Thread.sleep(2000);
+            }
         }
     }
 }

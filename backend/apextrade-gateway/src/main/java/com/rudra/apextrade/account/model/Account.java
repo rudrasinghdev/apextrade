@@ -58,6 +58,15 @@ public class Account {
     }
 
     public void settleBuyTrade(long orderId, long usdCost, long btcReceived) {
+        ActiveOrder order = activeOrders.get(orderId);
+        if (order != null) {
+            long reservedForThisFill = Math.ceilDiv(Math.multiplyExact(order.getPrice(), btcReceived), SATOSHI_PER_BTC);
+            long priceImprovement = reservedForThisFill - usdCost;
+            if (priceImprovement > 0) {
+                reservedUsdt.addAndGet(-priceImprovement);
+                availableUsdt.addAndGet(priceImprovement);
+            }
+        }
         reduceOrRemoveOrder(orderId, btcReceived);
         reservedUsdt.addAndGet(-usdCost);
         availableBtc.addAndGet(btcReceived);

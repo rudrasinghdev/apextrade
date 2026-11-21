@@ -49,7 +49,7 @@ public class ArbitrageBot implements Runnable {
                 // Aggressively cross the spread (maker half-spread is $0.50, ±$1.25 crosses top-of-book)
                 double sweepPrice = (side == Side.BUY) ? (fairPrice + 1.25) : Math.max(1.0, fairPrice - 1.25);
 
-                long orderId = client.placeLimitOrder(session.token(), side, sweepPrice, sweepQuantity);
+                long orderId = client.placeLimitOrder(session, side, sweepPrice, sweepQuantity);
                 if (orderId > 0) {
                     System.out.printf("[Taker #%d] Cross Order #%d FIRED [%s %.4f BTC @ $%.2f (market anchor $%.2f)]%n",
                             session.userId(), orderId, side, sweepQuantity, sweepPrice, fairPrice);
