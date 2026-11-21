@@ -2,7 +2,7 @@ package com.rudra.apextrade.bot;
 
 public class LiquidityHarnessApp {
 
-    private static final String GATEWAY_URL = "http://152.67.4.206:8080";
+    private static final String GATEWAY_URL = "http://localhost:8080";
     private static final double CENTER_PRICE = 50000.0;
 
     static void main() {
