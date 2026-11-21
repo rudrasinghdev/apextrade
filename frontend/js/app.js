@@ -713,7 +713,19 @@
   function handleWsMessage(msg) {
     if (!msg || !msg.type) return;
 
-    if (msg.type === 'TRADE') {
+    if (msg.type === 'SNAPSHOT' && msg.price) {
+      const snapPrice = parseFloat(msg.price);
+      if (!isNaN(snapPrice) && snapPrice > 0) {
+        state.prevPrice = state.lastTradedPrice || snapPrice;
+        state.lastTradedPrice = snapPrice;
+        updateLtpDisplay(snapPrice, state.prevPrice);
+        if (el.inputPrice && (!el.inputPrice.value || el.inputPrice.value === '50000.00')) {
+          el.inputPrice.value = snapPrice.toFixed(2);
+          updateNotional();
+        }
+        logAudit('SNAPSHOT_HYDRATED', 200, 0, `Market hydrated to live LTP $${snapPrice.toFixed(2)}`);
+      }
+    } else if (msg.type === 'TRADE') {
       OrderFSM.handleExecution(msg);
     } else if (msg.type === 'CANCEL') {
       OrderFSM.handleCancelConfirmed(msg);
