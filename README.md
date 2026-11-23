@@ -1,17 +1,17 @@
 # ⚡ ApexTrade: Distributed Ultra-Low-Latency Matching Core & Edge Gateway
 
 [![Live Demo](https://img.shields.io/badge/Live%20Exchange%20Terminal-152.67.4.206%3A8080-success.svg?style=for-the-badge&logo=google-cloud&logoColor=white)](http://152.67.4.206:8080)
-[![Java](https://img.shields.io/badge/Java-25%20LTS-orange.svg?style=flat-square)](https://openjdk.org/)
+[![Java](https://img.shields.io/badge/Java-21%20%2F%2025-orange.svg?style=flat-square)](https://openjdk.org/)
 [![Concurrency](https://img.shields.io/badge/Concurrency-LMAX%20Disruptor%204.0.0-blue.svg?style=flat-square)](https://lmax-exchange.github.io/disruptor/)
 [![Virtual Threads](https://img.shields.io/badge/Project%20Loom-Virtual%20Threads-blueviolet.svg?style=flat-square)](https://openjdk.org/projects/loom/)
 [![Peak Throughput](https://img.shields.io/badge/Peak%20Throughput-19.47M%20ops%2Fsec-success.svg?style=flat-square)](#-verified-in-memory-benchmarks)
-[![Service Time](https://img.shields.io/badge/Mean%20Service%20Time-51.36%20ns%2Forder-brightgreen.svg?style=flat-square)](#-verified-in-memory-benchmarks)
+[![Engine Core](https://img.shields.io/badge/Engine%20Latency-Deterministic%20Core-brightgreen.svg?style=flat-square)](#-verified-in-memory-benchmarks)
 [![Compliance](https://img.shields.io/badge/Regulatory-Self--Trade%20Prevention%20(STP)-red.svg?style=flat-square)](#6-self-trade-prevention-stp--cancel_maker-policy)
 [![Cloud](https://img.shields.io/badge/Cloud-Oracle%20Cloud%20Dual--VM-red.svg?style=flat-square)](#-distributed-dual-vm-cloud-architecture)
 
 ApexTrade is an institutional-grade, multi-module electronic trading core engineered with **Mechanical Sympathy** for Linux and modern x86_64 multi-core architectures.
 
-Structured as a high-performance **Maven Multi-Module Reactor**, ApexTrade strictly decouples the high-concurrency client network edge from the deterministic matching core across independent physical/virtual host machines. The matching engine operates as an isolated single-writer state machine free of runtime heap allocations, lock contention, and framework overhead—clocking a verified peak throughput of **19.47 Million orders/second** at a **mean service time of 51.36 nanoseconds per order**, streaming binary wire frames over a dedicated private network fabric.
+Structured as a high-performance **Maven Multi-Module Reactor**, ApexTrade strictly decouples the high-concurrency client network edge from the deterministic matching core across independent physical/virtual host machines. The matching engine operates as an isolated single-writer state machine with zero order-lifecycle heap churn via pre-allocated pooling, minimal lock contention, and zero framework overhead—clocking a verified peak batch throughput of **19.47 Million orders/second** in-memory, streaming binary wire frames over a dedicated private network fabric.
 
 ---
 
@@ -29,11 +29,11 @@ ApexTrade runs in production 24/7 on **Oracle Cloud Infrastructure (OCI Mumbai `
      │                   Public IP: 152.67.4.206  •  Private IP: 10.0.0.220                   │
      │                                                                                        │
      │  ┌────────────────────────────────────────┐  ┌──────────────────────────────────────┐  │
-     │  │   Edge API Gateway (Spring Boot 4.1)   │  │   apextrade-bot (24/7 Cloud Daemon)  │  │
+     │  │   Edge API Gateway (Spring Boot & Loom)│  │   apextrade-bot (24/7 Cloud Daemon)  │  │
      │  │  • Project Loom Virtual Threads        │  │  • Maker Bot: 50 Depth Levels        │  │
      │  │  • In-Memory Atomic Margin Ledger      │  │  • Asymmetric Multi-Slice Quoting    │  │
      │  │  • Pre-Trade Balance Validation (CAS)  │◀─┼──• Taker Bot: Spread Sweeper (150ms) │  │
-     │  │  • WebSocket Snapshot Hydration Engine │  │  • Ornstein-Uhlenbeck Stochastic     │  │
+     │  │  • WebSocket Snapshot Hydration Engine │  │  • Mean-Reverting Stochastic         │  │
      │  │  • JWT Auth & Neon Postgres Pooling    │  │    Regime-Switching Drift Engine     │  │
      │  └───────────────────┬────────────────────┘  └──────────────────────────────────────┘  │
      └──────────────────────┼─────────────────────────────────────────────────────────────────┘
@@ -55,7 +55,7 @@ ApexTrade runs in production 24/7 on **Oracle Cloud Infrastructure (OCI Mumbai `
      │                                                                 ▼                      │
      │  ┌─────────────────────────┐                ┌───────────────────────────────────────┐  │
      │  │ Lock-Free SPSC Egress   │◀───────────────│          OrderBook & Engine           │  │
-     │  │ RingBuffer (64K Slots)  │                │  • Zero-GC OrderPool (100k Recycled)  │  │
+     │  │ RingBuffer (64K Slots)  │                │  • Pre-Allocated OrderPool (100k)      │  │
      │  │ (Non-blocking Outbound) │                │  • Price-Time Priority FIFO Matching  │  │
      │  └─────────────────────────┘                │  • Self-Trade Prevention (STP Engine) │  │
      │                                             └───────────────────────────────────────┘  │
@@ -87,7 +87,7 @@ apextrade/
     ├── apextrade-engine/                     # Pure Java Ultra-Low-Latency Deterministic Core
     │   └── src/main/java/com/rudra/apextrade/
     │       ├── core/
-    │       │   ├── book/OrderBook.java       # Cache-friendly PriceLevel B-Tree ladder
+    │       │   ├── book/OrderBook.java       # PriceLevel Red-Black Tree (TreeMap) & FIFO queues
     │       │   ├── engine/MatchingEngine.java# Price-Time Priority + Self-Trade Prevention (STP)
     │       │   ├── engine/EngineMain.java    # Standalone daemon launcher & NIO TCP listener
     │       │   ├── order/Order.java          # Object-recycled order model
@@ -98,7 +98,7 @@ apextrade/
     │       └── transport/                    # Java NIO SocketChannel listener & frame dispatch
     ├── apextrade-gateway/                    # Edge Gateway (Spring Boot & Cloud Edge)
     │   └── src/main/java/com/rudra/apextrade/
-    │       ├── GatewayApplication.java       # Spring Boot 4.1.1 entry point (Java 25)
+    │       ├── GatewayApplication.java       # Spring Boot entry point (Java 25 / Loom)
     │       ├── account/                      # In-memory atomic margin ledger & pre-trade risk
     │       ├── auth/                         # JWT authentication & BCrypt password hashing
     │       ├── order/                        # Order validation, routing, and controller endpoints
@@ -109,7 +109,7 @@ apextrade/
             ├── LiquidityHarnessApp.java      # Cloud daemon launcher & thread coordinator
             ├── MarketMakerBot.java           # 50-level depth quoting via Java Virtual Threads
             ├── ArbitrageBot.java             # Top-of-book taker spread sweeper (150ms intervals)
-            ├── FastFairPriceGenerator.java   # Ornstein-Uhlenbeck stochastic regime drift engine
+            ├── FastFairPriceGenerator.java   # Mean-reverting stochastic regime drift engine
             └── ExchangeHttpClient.java       # High-throughput non-blocking HTTP REST client
 ```
 
@@ -179,7 +179,7 @@ Inter-service communication between Gateway and Engine uses custom compact binar
 
 All book modifications, price level traversals, and execution matches execute deterministically on a single dedicated thread (`matching-core-thread`).
 * **Zero Locking:** Eliminates `synchronized`, `ReentrantLock`, and OS mutexes (`pthread_mutex`).
-* **Cache-Line Padding:** Sequence counters and ring buffer boundaries are padded with 64-byte empty caches (`@Contended` / padding fields) to eliminate **false sharing** across CPU L1/L2 cache lines.
+* **Cache-Line Padding:** Leverages LMAX Disruptor's cache-line padded sequence counters (`Sequence`) to eliminate **false sharing** and prevent MESI cache line invalidation across producer/consumer CPU cores.
 
 ---
 
@@ -198,11 +198,11 @@ The Gateway edge features a nanosecond pre-trade risk engine backed by `AtomicLo
 
 ---
 
-### 4. Zero-GC Memory Management (`OrderPool`)
+### 4. Zero Order-Churn Memory Management (`OrderPool`)
 
-* Pre-allocates and warms **100,000 `Order` instances** into contiguous memory during engine initialization.
-* Active orders borrow from the pool; cancellations and fills return instances immediately.
-* Completely eliminates runtime heap allocation pauses (`0.00 ms GC pause`) on the matching hot path.
+* Pre-allocates and warms **100,000 `Order` instances** during engine initialization.
+* Active orders borrow from the pool; cancellations and fills return instances immediately, eliminating order-lifecycle object allocations.
+* Minimizes Young Gen GC churn on high-frequency order placement, matching, and cancellation lifecycles.
 
 ---
 
@@ -248,7 +248,7 @@ ApexTrade features an autonomous, multi-threaded market driver (`apextrade-bot`)
   `MarketMakerBot` utilizes `Executors.newVirtualThreadPerTaskExecutor()` to submit and cancel 200 orders in parallel per second. Cycle execution latency drops from $5,000\,\text{ms}$ down to $\mathbf{\sim 50\,\text{ms}}$.
 * **Asymmetric Multi-Order Slicing:**
   Quotes are placed across **50 price levels** with 2 asymmetric order slices per level (`0.03 BTC` + `0.02 BTC`). This rigorously stress-tests the matching engine's doubly linked FIFO queue unlinking and partial execution mechanics.
-* **Quantitative Stochastic Drift Model (Ornstein-Uhlenbeck):**
+* **Quantitative Stochastic Drift Model (Mean-Reverting Random Walk):**
   Rather than rigid oscillations, `FastFairPriceGenerator` executes a **Proportional Mean-Reverting Markov Regime-Switching Drift Process**:
   $$\text{Upward Probability} = \mathbf{50\% - \left(\frac{\Delta}{\text{MaxDeviation}}\right) \times 42\%}$$
   - **Macro Waves:** Trends persist for 15 to 50 consecutive ticks, creating realistic multi-dollar market waves.
@@ -275,11 +275,14 @@ Benchmarked on **Microsoft Azure** (`Standard_D4as_v4`, 4 vCPUs AMD EPYC 7452 @ 
 * **Order Profile:** Aggressive crossing `BUY` limit orders sweeping resting `SELL` asks across a 5-level price ladder (top-of-book execution).
 * **Measurement Barrier:** High-resolution timer records from order #1 submission until the consumer thread clears the 1,000,000th gating sequence (`ringBuffer.getMinimumGatingSequence() >= targetSequence`).
 
-| Execution Stage | Total Orders | Duration | Throughput (TPS) | Mean Service Time (1/TPS) | CPU Cycles / Order |
+| Execution Stage | Total Orders | Duration | Throughput (TPS) | Batch Interval (Time / Orders) | CPU Cycles / Order |
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | **Cold Run (JIT Tier 1–3 Profiling)** | 1,000,000 | 239.95 ms | 4,167,481 ops/sec | 239.95 ns | ~720 cycles |
 | **Warm Run (C2 Tier-4 Optimization)** | 1,000,000 | 77.85 ms | 12,845,785 ops/sec | 77.85 ns | ~233 cycles |
 | **Saturated Peak (BTB / Loop Unrolled)** | **1,000,000** | **51.36 ms** | **19,470,243 ops/sec** | **51.36 ns** | **~154 cycles** |
+
+> [!NOTE]
+> **Benchmarking Methodology:** The metrics above measure peak in-memory ring-buffer pipelined batch throughput. Average batch interval ($\text{Duration} / \text{Orders}$) reflects saturated pipeline processing capacity under synthetic unthrottled load; tick-to-trade latency profiling across network boundaries is measured independently via high-resolution timer deltas.
 
 ```text
 =======================================================
@@ -353,7 +356,7 @@ tail -f bot.log
 - [x] **Phase 1: Multi-Module Reactor Core**
   - Modularized into `apextrade-common`, `apextrade-engine`, and `apextrade-gateway`.
   - Pure Java matching engine core decoupled from Spring framework dependencies.
-  - Zero-GC 100,000 `OrderPool` with B-Tree price level indexing.
+  - Pre-allocated 100,000 `OrderPool` with ordered Red-Black Tree price level indexing.
   - Verified peak 19.47M ops/sec throughput.
 - [x] **Phase 2: High-Performance Inter-Process TCP Network Engine**
   - Non-blocking Java NIO `ServerSocketChannel` (`EngineTcpServer`) on port `9000`.
@@ -361,7 +364,7 @@ tail -f bot.log
   - Dual-Disruptor asynchronous network socket reader and writer pipelines.
 - [x] **Phase 3: In-Memory Atomic Margin Ledger & Pre-Trade Risk**
   - Lock-free `AtomicLong` CAS margin reservation engine in Gateway.
-  - Real-time post-trade two-phase settlement for maker and taker.
+  - Real-time post-trade atomic dual-party ledger settlement for maker and taker.
   - Distributed dual-VM cloud deployment on Oracle Cloud Infrastructure (OCI).
 - [x] **Phase 4: Self-Trade Prevention (STP) & Regulatory Compliance**
   - High-frequency `CANCEL_MAKER` wash-trade prevention inside matching loop.
@@ -369,7 +372,7 @@ tail -f bot.log
 - [x] **Phase 5: Automated Market Making & Virtual-Thread Bot Harness**
   - Autonomous 50-level two-sided liquidity provider (`MarketMakerBot`) using Java 21 Virtual Threads.
   - Sub-second top-of-book taker sweeper (`ArbitrageBot`).
-  - Ornstein-Uhlenbeck stochastic regime drift engine with fat-tailed volatility increments.
+  - Mean-reverting stochastic regime drift engine with fat-tailed volatility increments.
 - [x] **Phase 6: Real-Time WebSocket Snapshot Hydration**
   - Atomic reference caching for latest execution price.
   - Zero-lag cold-start DOM terminal hydration on connection handshake.
@@ -386,14 +389,14 @@ tail -f bot.log
 
 | Component | Technology | Rationale |
 | :--- | :--- | :--- |
-| **Language Runtime** | Java 25 (LTS) | C2 JIT compilation, Project Loom Virtual Threads, Foreign Function & Memory API ready. |
+| **Language Runtime** | Java 21 / 25 | C2 JIT compilation, Project Loom Virtual Threads, Foreign Function & Memory API ready. |
 | **Ingress Concurrency** | LMAX Disruptor 4.0.0 | Mechanical sympathy, lock-free ring buffers, cache-line padded sequencing (`YieldingWaitStrategy`). |
 | **Egress Concurrency** | SPSC Ring Buffer | Non-blocking trade publication isolating matching core from client network lag. |
 | **Wire Protocol** | Custom Binary Frame | Variable-length zero-allocation frames with magic validation (`0x4150` Ingress, `0x4558` Egress). |
 | **Pre-Trade Risk Engine** | In-Memory Atomic CAS | Sub-microsecond balance validation and margin locking using `AtomicLong` primitives. |
-| **Regulatory Engine** | Self-Trade Prevention (STP) | Native `CANCEL_MAKER` engine preventing wash trading at zero latency cost. |
-| **Market Driver** | Java 21 Virtual Threads | Pipelined concurrent order dispatching (200 orders/sec in 50ms) via lightweight user-mode threads. |
-| **Quantitative Pricing** | Ornstein-Uhlenbeck Model | Proportional mean-reverting Markov regime process generating realistic dynamic crypto candlestick waves. |
-| **Web & Edge Framework** | Spring Boot 4.1.1 | REST entry point, JWT authentication, non-blocking STOMP WebSocket broadcast. |
+| **Regulatory Engine** | Self-Trade Prevention (STP) | Native `CANCEL_MAKER` engine preventing wash trading via inline FIFO unlinking. |
+| **Market Driver** | Java Virtual Threads | Pipelined concurrent order dispatching (200 orders/sec in 50ms) via lightweight user-mode threads. |
+| **Quantitative Pricing** | Mean-Reverting Drift Process | Proportional mean-reverting Markov regime process generating realistic dynamic crypto candlestick waves. |
+| **Web & Edge Framework** | Spring Boot 3.x / Loom | REST entry point, JWT authentication, non-blocking STOMP WebSocket broadcast. |
 | **Database** | Neon PostgreSQL | Serverless connection pooling for user identity, authentication, and cold storage audit trail. |
 | **Cloud Infrastructure** | Oracle Cloud Infrastructure | Multi-tier VCN architecture with air-gapped private subnet for the matching engine. |
