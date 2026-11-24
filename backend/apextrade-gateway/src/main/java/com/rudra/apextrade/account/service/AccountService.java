@@ -60,6 +60,10 @@ public class AccountService {
         getAccount(userId).cancelOrder(orderId);
     }
 
+    public void cancelOrder(long userId, long orderId, long unfilledQty) {
+        getAccount(userId).cancelOrder(orderId, unfilledQty);
+    }
+
     public ActiveOrder getActiveOrder(long userId, long orderId) {
         return getAccount(userId).getActiveOrder(orderId);
     }

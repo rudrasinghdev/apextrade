@@ -77,10 +77,11 @@ public class ExecutionDispatchHandler implements EventHandler<ExecutionEvent> {
     private void handleCancel(ExecutionEvent cancel) {
         long userId = cancel.getCancelledUserId();
         long orderId = cancel.getCancelledOrderId();
+        long unfilledQty = cancel.getQuantity();
 
         log.info("[S1 Gateway Transport] Order #{} cancel confirmed by Engine. Unlocking margin for user #{}.", orderId, userId);
 
-        ledger.cancelOrder(userId, orderId);
+        ledger.cancelOrder(userId, orderId, unfilledQty);
 
         String jsonPayload = String.format(
                 "{\"type\":\"CANCEL\",\"orderId\":%d,\"userId\":%d,\"side\":\"%s\",\"price\":%d,\"quantity\":%d,\"timestamp\":%d}",

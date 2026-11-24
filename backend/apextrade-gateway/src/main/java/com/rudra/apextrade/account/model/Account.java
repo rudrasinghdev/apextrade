@@ -59,20 +59,28 @@ public class Account {
 
     public void settleBuyTrade(long orderId, long usdCost, long btcReceived) {
         ActiveOrder order = activeOrders.get(orderId);
-        if (order != null) {
-            long reservedForThisFill = Math.ceilDiv(Math.multiplyExact(order.getPrice(), btcReceived), SATOSHI_PER_BTC);
-            long priceImprovement = reservedForThisFill - usdCost;
-            if (priceImprovement > 0) {
-                reservedUsdt.addAndGet(-priceImprovement);
-                availableUsdt.addAndGet(priceImprovement);
-            }
+        if (order == null) {
+            return;
         }
+
+        long reservedForThisFill = Math.ceilDiv(Math.multiplyExact(order.getPrice(), btcReceived), SATOSHI_PER_BTC);
+        long priceImprovement = reservedForThisFill - usdCost;
+        if (priceImprovement > 0) {
+            reservedUsdt.addAndGet(-priceImprovement);
+            availableUsdt.addAndGet(priceImprovement);
+        }
+
         reduceOrRemoveOrder(orderId, btcReceived);
         reservedUsdt.addAndGet(-usdCost);
         availableBtc.addAndGet(btcReceived);
     }
 
     public void settleSellTrade(long orderId, long btcSold, long usdReceived) {
+        ActiveOrder order = activeOrders.get(orderId);
+        if (order == null) {
+            return;
+        }
+
         reduceOrRemoveOrder(orderId, btcSold);
         reservedBtc.addAndGet(-btcSold);
         availableUsdt.addAndGet(usdReceived);
@@ -86,14 +94,20 @@ public class Account {
     }
 
     public void cancelOrder(long orderId) {
+        ActiveOrder order = activeOrders.get(orderId);
+        if (order != null) {
+            cancelOrder(orderId, order.getRemainingQuantity());
+        }
+    }
+
+    public void cancelOrder(long orderId, long unfilledQuantity) {
         ActiveOrder order = activeOrders.remove(orderId);
         if (order != null) {
-            long remainingQty = order.getRemainingQuantity();
             if (order.getSide() == Side.BUY) {
-                long remainingUsd = Math.ceilDiv(Math.multiplyExact(order.getPrice(), remainingQty), SATOSHI_PER_BTC);
-                releaseFunds(availableUsdt, reservedUsdt, remainingUsd);
+                long refundUsd = Math.ceilDiv(Math.multiplyExact(order.getPrice(), unfilledQuantity), SATOSHI_PER_BTC);
+                releaseFunds(availableUsdt, reservedUsdt, refundUsd);
             } else {
-                releaseFunds(availableBtc, reservedBtc, remainingQty);
+                releaseFunds(availableBtc, reservedBtc, unfilledQuantity);
             }
         }
     }

@@ -254,4 +254,29 @@ class AccountServiceTest {
         // Available USDT should be initial - 49,000 USDT (the only cost incurred)
         assertEquals(AccountService.DEFAULT_INITIAL_USDT - 4_900_000L, account.getAvailableUsdt());
     }
+
+    @Test
+    @DisplayName("Ledger Invariant: Stale trade arriving after cancellation is safely rejected without corrupting balances")
+    void testCancelBeforeTradeSettlementDoesNotCorruptLedger() {
+        accountService.createAccount(101L);
+        Account account = accountService.getAccount(101L);
+
+        // 1. Trader reserves margin for 10 BTC @ 50,000 USDT ($500,000 USDT = 50,000,000 cents)
+        accountService.reserveBuyMargin(101L, 1L, 5_000_000L, 1_000_000_000L, System.nanoTime());
+        assertEquals(50_000_000L, account.getReservedUsdt());
+        assertEquals(AccountService.DEFAULT_INITIAL_USDT - 50_000_000L, account.getAvailableUsdt());
+
+        // 2. Order is cancelled with engine-confirmed unfilled quantity (full 10 BTC)
+        accountService.cancelOrder(101L, 1L, 1_000_000_000L);
+        assertEquals(0L, account.getReservedUsdt());
+        assertEquals(AccountService.DEFAULT_INITIAL_USDT, account.getAvailableUsdt());
+
+        // 3. Stale in-flight trade fill arrives:
+        accountService.settleBuyTrade(101L, 1L, 20_000_000L, 400_000_000L);
+
+        // 4. Verify ledger remains 100% integral and non-negative:
+        assertEquals(0L, account.getReservedUsdt(), "Reserved USDT must NEVER go negative");
+        assertEquals(AccountService.DEFAULT_INITIAL_USDT, account.getAvailableUsdt(), "Available USDT intact");
+        assertEquals(AccountService.DEFAULT_INITIAL_BTC, account.getAvailableBtc(), "No free BTC credited for cancelled order");
+    }
 }
